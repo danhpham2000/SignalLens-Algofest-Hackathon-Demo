@@ -83,7 +83,7 @@ Optional Integrations
 
 ## Tech Stack
 
-- Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion
+- Frontend: Next.js, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion
 - Backend: FastAPI, Python, PyMuPDF, pdfplumber, pytesseract, pandas
 - AI and retrieval: OpenAI, LangChain, OpenAI embeddings
 - Persistence: Postgres / Neon
@@ -173,7 +173,7 @@ NEO4J_TIMEOUT_SECONDS=4
 
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 CORS_ORIGIN_REGEX=https://.*\\.vercel\\.app
-MAX_UPLOAD_MB=15
+MAX_UPLOAD_MB=10
 MAX_FINDINGS=5
 ```
 
@@ -203,7 +203,6 @@ The frontend ships with demo assets in `frontend/public/samples/`:
 
 - `acme-q1-2025.pdf`
 - `us-financial-report-2025-page-9.png`
-- `us-financial-report-2025-page-9.jpg`
 
 These support both PDF and image-based demo paths.
 
