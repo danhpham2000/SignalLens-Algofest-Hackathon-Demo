@@ -55,9 +55,6 @@ export default function SampleFilePicker({
               investigation flow.
             </p>
           </div>
-          <Badge variant="outline" className="rounded-full px-3 py-1">
-            No setup required
-          </Badge>
         </div>
       </StaggerItem>
 

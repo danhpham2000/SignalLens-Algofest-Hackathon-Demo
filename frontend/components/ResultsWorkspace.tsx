@@ -327,12 +327,7 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
             ))}
           </div>
 
-          {result.findings.length > demoFindings.length ? (
-            <p className="text-sm text-muted-foreground">
-              The page only shows the top three findings so the demo stays short
-              and easy to present.
-            </p>
-          ) : null}
+          {result.findings.length > demoFindings.length}
         </section>
 
         <section className="space-y-4">

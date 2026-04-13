@@ -157,7 +157,7 @@ export default function Hero() {
             </div>
 
             <div className="mt-6 max-w-3xl space-y-5">
-              <h1 className="font-heading text-5xl font-semibold tracking-tight sm:text-6xl">
+              <h1 className="font-heading text-4xl font-semibold tracking-tight">
                 Turn dense finance docs into ranked signals with evidence and a
                 graph view.
               </h1>
@@ -199,9 +199,9 @@ export default function Hero() {
                       <Icon className="h-5 w-5" />
                     </div>
                     <p className="mt-4 font-medium">{item.label}</p>
-                    <p className="mt-2 text-sm/6 text-muted-foreground">
+                    {/* <p className="mt-2 text-sm/6 text-muted-foreground">
                       {item.description}
-                    </p>
+                    </p> */}
                   </HoverLift>
                 )
               })}
@@ -263,10 +263,7 @@ export default function Hero() {
           </div>
         </section>
 
-        <section
-          id="workflow"
-          className="xl:grid-cols-[1fr] grid gap-6"
-        >
+        <section id="workflow" className="grid gap-6 xl:grid-cols-[1fr]">
           <FadeIn className="panel-surface rounded-[1.9rem] p-7 sm:p-8">
             <p className="text-sm font-medium tracking-[0.22em] text-primary uppercase">
               How it works

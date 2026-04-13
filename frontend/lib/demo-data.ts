@@ -65,20 +65,20 @@ export const sampleFiles: SampleFile[] = [
     sourceHref:
       "https://fiscal.treasury.gov/system/files/2026-03/FY-2025-Financial-Report-3-19-2025%28Final%29.pdf",
   },
-  {
-    id: "executive-summary-jpg",
-    name: "Executive summary JPG",
-    // description:
-    //   "JPEG version of the same real Treasury page for quick image-upload testing.",
-    filename: "us-financial-report-2025-page-9.jpg",
-    fileType: "jpg",
-    focus: "Real public JPG",
-    resultId: "apollo-q4-report",
-    viewHref: "/samples/us-financial-report-2025-page-9.jpg",
-    viewLabel: "View JPG",
-    sourceHref:
-      "https://fiscal.treasury.gov/system/files/2026-03/FY-2025-Financial-Report-3-19-2025%28Final%29.pdf",
-  },
+  // {
+  //   id: "executive-summary-jpg",
+  //   name: "Executive summary JPG",
+  //   // description:
+  //   //   "JPEG version of the same real Treasury page for quick image-upload testing.",
+  //   filename: "us-financial-report-2025-page-9.jpg",
+  //   fileType: "jpg",
+  //   focus: "Real public JPG",
+  //   resultId: "apollo-q4-report",
+  //   viewHref: "/samples/us-financial-report-2025-page-9.jpg",
+  //   viewLabel: "View JPG",
+  //   sourceHref:
+  //     "https://fiscal.treasury.gov/system/files/2026-03/FY-2025-Financial-Report-3-19-2025%28Final%29.pdf",
+  // },
 ]
 
 const demoResults: Record<string, ResultResponse> = {
