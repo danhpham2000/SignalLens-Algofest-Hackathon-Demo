@@ -218,7 +218,7 @@ export default function SimpleGraphPreview({
       <div className="overflow-hidden rounded-[1.3rem] border border-border/70 bg-white/60">
         <svg
           viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
-          className="h-[440px] w-full bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_42%),linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:auto,36px_36px,36px_36px]"
+          className="h-110 w-full bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_42%),linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)] bg-size-[auto,36px_36px,36px_36px]"
           role="img"
           aria-label={`Simple graph preview for ${findingTitle}`}
         >

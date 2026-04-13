@@ -9,6 +9,7 @@ import {
   StaggerGroup,
   StaggerItem,
 } from "@/components/ui/motion"
+import { DarkModeToggle } from "./ui/dark-mode-toggle"
 
 type HeaderAction = {
   href: string
@@ -64,9 +65,12 @@ export default function Header({
             <div className="space-y-1">
               <StaggerItem y={8}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-heading text-xl font-semibold tracking-tight">
+                  <p className="mr-2 font-heading text-xl font-semibold tracking-tight">
                     SignalLens
                   </p>
+                  <DarkModeToggle />
+                  <p className="text-sm">Press D to toggle the theme</p>
+
                   {eyebrow ? (
                     <Badge variant="outline" className="rounded-full px-3 py-1">
                       {eyebrow}

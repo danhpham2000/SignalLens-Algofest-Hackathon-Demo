@@ -22,6 +22,7 @@ import { FadeIn, HoverLift } from "@/components/ui/motion"
 import { fetchSampleFileAsFile, runDocumentPipeline } from "@/lib/api"
 import { PROCESSING_STEPS, sampleFiles } from "@/lib/demo-data"
 import { type SampleFile } from "@/lib/types"
+import { useTheme } from "next-themes"
 
 const heroStats = [
   {
@@ -61,6 +62,8 @@ const workflowSteps = [
 ] as const
 
 export default function Hero() {
+  const { theme } = useTheme()
+
   const router = useRouter()
   const [selectedSampleId, setSelectedSampleId] = React.useState(
     sampleFiles[0]?.id ?? ""

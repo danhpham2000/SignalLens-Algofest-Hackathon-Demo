@@ -61,7 +61,7 @@ export default function EvidenceDrawer({
         </CardHeader>
 
         <CardContent className="px-0">
-          <ScrollArea className="max-h-[460px] pr-4">
+          <ScrollArea className="max-h-115 pr-4">
             <StaggerGroup className="space-y-3" stagger={0.06}>
               {evidence.map((item) => (
                 <StaggerItem key={item.id} y={10}>

@@ -13,7 +13,7 @@ import {
 
 export default function EmptyState() {
   return (
-    <Empty className="panel-surface min-h-[280px] rounded-[1.75rem] border border-border/80 bg-background/70">
+    <Empty className="panel-surface min-h-70 rounded-[1.75rem] border border-border/80 bg-background/70">
       <EmptyHeader>
         <EmptyMedia
           variant="icon"

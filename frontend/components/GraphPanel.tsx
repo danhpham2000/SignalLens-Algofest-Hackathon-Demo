@@ -215,7 +215,7 @@ export default function GraphPanel({
             <div className="data-grid rounded-[1.2rem] bg-background/80">
               <svg
                 viewBox={`0 0 ${GRAPH_W} ${GRAPH_H}`}
-                className="h-[420px] w-full"
+                className="h-105 w-full"
                 role="img"
                 aria-label="SignalLens relationship graph"
               >
