@@ -1,0 +1,16 @@
+fastapi
+python-dotenv
+langchain
+langchain-text-splitters
+neo4j
+pymupdf
+langchain-openai
+pdfplumber
+pytesseract
+Pillow
+python-multipart
+pandas
+aiofile
+uvicorn
+openai
+psycopg[binary]
