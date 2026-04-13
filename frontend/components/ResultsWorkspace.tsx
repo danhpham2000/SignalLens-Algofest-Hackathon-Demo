@@ -130,17 +130,21 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
               <div className="mt-6 rounded-[1.45rem] border border-border/80 bg-background/65 p-5">
                 <p className="text-sm font-medium">Talk track</p>
                 <div className="mt-3 space-y-2">
-                  {result.summary.keyTakeaways.slice(0, 3).map((takeaway, index) => (
-                    <div
-                      key={takeaway}
-                      className="flex items-start gap-3 rounded-2xl bg-background/80 px-4 py-3"
-                    >
-                      <span className="mt-0.5 font-mono text-xs text-primary">
-                        0{index + 1}
-                      </span>
-                      <p className="text-sm/6 text-foreground/85">{takeaway}</p>
-                    </div>
-                  ))}
+                  {result.summary.keyTakeaways
+                    .slice(0, 3)
+                    .map((takeaway, index) => (
+                      <div
+                        key={takeaway}
+                        className="flex items-start gap-3 rounded-2xl bg-background/80 px-4 py-3"
+                      >
+                        <span className="mt-0.5 font-mono text-xs text-primary">
+                          0{index + 1}
+                        </span>
+                        <p className="text-sm/6 text-foreground/85">
+                          {takeaway}
+                        </p>
+                      </div>
+                    ))}
                 </div>
               </div>
             ) : null}
@@ -156,8 +160,13 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <Badge
-                variant={activeFinding.severity === "high" ? "default" : "secondary"}
-                className="rounded-full capitalize"
+                className={`rounded-full capitalize ${
+                  activeFinding.severity === "high"
+                    ? "bg-red-500 text-white hover:bg-red-600"
+                    : activeFinding.severity === "medium"
+                      ? "bg-yellow-400 text-black hover:bg-yellow-500"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
               >
                 {activeFinding.severity}
               </Badge>
@@ -186,7 +195,8 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
                   Why it matters
                 </p>
                 <p className="mt-2 text-sm/6 text-foreground/85">
-                  {activeFinding.impact ?? "This is the clearest signal to explain during the demo."}
+                  {activeFinding.impact ??
+                    "This is the clearest signal to explain during the demo."}
                 </p>
               </div>
               <div className="rounded-[1.3rem] border border-border/80 bg-background/70 p-4">
@@ -232,7 +242,8 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
                 ))
               ) : (
                 <div className="rounded-[1.3rem] border border-dashed border-border/80 bg-background/60 p-4 text-sm text-muted-foreground">
-                  No evidence snippet is attached to this finding in the current payload.
+                  No evidence snippet is attached to this finding in the current
+                  payload.
                 </div>
               )}
             </div>
@@ -277,8 +288,13 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <Badge
-                      variant={finding.severity === "high" ? "default" : "secondary"}
-                      className="rounded-full capitalize"
+                      className={`rounded-full capitalize ${
+                        finding.severity === "high"
+                          ? "bg-red-500 text-white hover:bg-red-600"
+                          : finding.severity === "medium"
+                            ? "bg-yellow-400 text-black hover:bg-yellow-500"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
                     >
                       {finding.severity}
                     </Badge>
@@ -313,7 +329,8 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
 
           {result.findings.length > demoFindings.length ? (
             <p className="text-sm text-muted-foreground">
-              The page only shows the top three findings so the demo stays short and easy to present.
+              The page only shows the top three findings so the demo stays short
+              and easy to present.
             </p>
           ) : null}
         </section>
@@ -329,12 +346,10 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
                   Quick visual of connected facts
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  The selected finding stays in the center with its nearest linked nodes around it.
+                  The selected finding stays in the center with its nearest
+                  linked nodes around it.
                 </p>
               </div>
-              <Badge variant="outline" className="w-fit rounded-full px-3 py-1">
-                Demo-friendly view
-              </Badge>
             </div>
           </FadeIn>
 
