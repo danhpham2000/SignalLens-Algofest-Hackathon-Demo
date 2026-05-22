@@ -8,6 +8,7 @@ export type FileStatus =
   | "error"
 
 export type SupportedFileType = "pdf" | "png" | "jpeg" | "jpg"
+export type SampleFileKind = "pdf" | "image" | "chart-image"
 
 export type EvidenceSourceType = "text" | "table" | "image"
 
@@ -123,13 +124,16 @@ export interface ResultResponse {
 export interface SampleFile {
   id: string
   name: string
+  description?: string
   filename: string
   fileType: SupportedFileType
+  kind: SampleFileKind
   focus: string
   resultId: string
   viewHref?: string
   viewLabel?: string
   sourceHref?: string
+  sourceLabel?: string
 }
 
 export interface DemoSampleResponse {

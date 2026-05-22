@@ -151,26 +151,26 @@ export default function Hero() {
       />
 
       <main className="page-shell space-y-10 py-8">
-        <section className="grid gap-7 xl:grid-cols-[1.02fr_0.98fr]">
-          <div className="panel-surface rounded-[2rem] p-7 sm:p-9">
+        <section className="grid gap-7 xl:grid-cols-[0.82fr_1.18fr] xl:items-start">
+          <div className="panel-surface self-start rounded-[2rem] p-6 sm:p-7">
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="rounded-full px-3 py-4">
                 Financial document intelligence
               </Badge>
             </div>
 
-            <div className="mt-6 max-w-3xl space-y-5">
-              <h1 className="font-heading text-4xl font-semibold tracking-tight">
+            <div className="mt-5 max-w-2xl space-y-4">
+              <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-[2.2rem]">
                 Turn dense finance docs into ranked signals with evidence and a
                 graph view.
               </h1>
-              <p className="max-w-2xl text-base/7 text-foreground/80 sm:text-lg/8">
+              <p className="max-w-xl text-sm/7 text-foreground/80 sm:text-base/7">
                 Extract metrics, score anomalies, and open a graph-backed
                 investigation view from one PDF or screenshot.
               </p>
             </div>
 
-            <div className="mt-9 flex flex-wrap gap-3">
+            <div className="mt-7 flex flex-wrap gap-3">
               <Button
                 className="rounded-full"
                 disabled={isProcessing || !selectedSample}
@@ -188,7 +188,7 @@ export default function Hero() {
               </Button>
             </div>
 
-            <div className="mt-9 grid gap-4 md:grid-cols-3">
+            <div className="mt-7 grid gap-3 sm:grid-cols-3">
               {heroStats.map((item) => {
                 const Icon = item.icon
 
@@ -196,12 +196,12 @@ export default function Hero() {
                   <HoverLift
                     key={item.label}
                     transition={{ duration: 0.18 }}
-                    className="rounded-[1.5rem] border border-border/80 bg-background/70 p-4"
+                    className="rounded-[1.35rem] border border-border/80 bg-background/70 p-4"
                   >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <Icon className="h-5 w-5" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <Icon className="h-4.5 w-4.5" />
                     </div>
-                    <p className="mt-4 font-medium">{item.label}</p>
+                    <p className="mt-3 text-sm font-medium">{item.label}</p>
                     {/* <p className="mt-2 text-sm/6 text-muted-foreground">
                       {item.description}
                     </p> */}

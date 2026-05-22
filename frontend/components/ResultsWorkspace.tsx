@@ -4,8 +4,8 @@ import * as React from "react"
 import { Clock3, FileStack } from "lucide-react"
 
 import EmptyState from "@/components/EmptyState"
+import GraphPanel from "@/components/GraphPanel"
 import Header from "@/components/Header"
-import SimpleGraphPreview from "@/components/SimpleGraphPreview"
 import { Badge } from "@/components/ui/badge"
 import { FadeIn } from "@/components/ui/motion"
 import { type EvidenceItem, type ResultResponse } from "@/lib/types"
@@ -47,6 +47,9 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
   const activeEvidence = result.evidence
     .filter((item) => activeFinding?.evidenceIds.includes(item.id))
     .slice(0, 2)
+  const activeGraphNodeIds = Array.from(
+    new Set([activeFinding.id, ...activeFinding.relatedNodeIds])
+  )
 
   if (!activeFinding) {
     return (
@@ -335,25 +338,24 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
             <div className="flex flex-col gap-3 rounded-[1.6rem] border border-border/80 bg-background/65 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium tracking-[0.22em] text-primary uppercase">
-                  Simple graph
+                  Interactive graph
                 </p>
                 <h2 className="font-heading text-2xl font-semibold">
-                  Quick visual of connected facts
+                  Explore the connected evidence live
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  The selected finding stays in the center with its nearest
-                  linked nodes around it.
+                  Pan, zoom, drag nodes, and inspect the selected finding’s
+                  neighborhood without leaving the results view.
                 </p>
               </div>
             </div>
           </FadeIn>
 
           <FadeIn>
-            <SimpleGraphPreview
+            <GraphPanel
               graph={result.graph}
-              activeFindingId={activeFinding.id}
+              activeNodeIds={activeGraphNodeIds}
               findingTitle={activeFinding.title}
-              relatedNodeIds={activeFinding.relatedNodeIds}
             />
           </FadeIn>
         </section>

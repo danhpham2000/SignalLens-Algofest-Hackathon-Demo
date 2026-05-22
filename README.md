@@ -201,10 +201,16 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 
 The frontend ships with demo assets in `frontend/public/samples/`:
 
-- `acme-q1-2025.pdf`
+- `us-financial-report-2025-executive-summary-excerpt.pdf`
+- `bofa-1q25-presentation-excerpt.pdf`
+- `bofa-1q25-supplemental-excerpt.pdf`
+- `california-2025-26-summary-charts.pdf`
+- `california-2025-26-summary-chart-image.png`
 - `us-financial-report-2025-page-9.png`
 
-These support both PDF and image-based demo paths.
+These support PDF, image, and chart-image demo paths using real public
+financial and spending data, with the PDF samples limited to 10 pages or
+fewer.
 
 ## Notes
 

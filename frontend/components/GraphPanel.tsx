@@ -1,12 +1,26 @@
 "use client"
 
 import * as React from "react"
+import cytoscape, {
+  type Core,
+  type EdgeSingular,
+  type ElementDefinition,
+} from "cytoscape"
 import { AnimatePresence, motion } from "framer-motion"
-import { Link2, Network } from "lucide-react"
+import {
+  Link2,
+  LocateFixed,
+  Maximize2,
+  Network,
+  RotateCcw,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FadeIn, easeOutExpo } from "@/components/ui/motion"
+import { FadeIn } from "@/components/ui/motion"
 import {
   type GraphData,
   type GraphEdge,
@@ -20,129 +34,321 @@ type GraphPanelProps = {
   findingTitle: string
 }
 
-type PositionedNode = GraphNode & {
-  x: number
-  y: number
-}
-
-const typeOrder: GraphNodeType[] = [
-  "Document",
-  "Company",
-  "Finding",
-  "Chunk",
-  "Section",
-  "Metric",
-  "Period",
-  "Counterparty",
-  "Transaction",
-  "RiskFlag",
-]
-
-const nodeConfig: Record<
-  GraphNodeType,
-  { gradFrom: string; gradTo: string; textColor: string; icon: string }
-> = {
-  Document:     { gradFrom: "#38bdf8", gradTo: "#0284c7", textColor: "#fff", icon: "D" },
-  Company:      { gradFrom: "#fbbf24", gradTo: "#d97706", textColor: "#fff", icon: "CO" },
-  Chunk:        { gradFrom: "#94a3b8", gradTo: "#475569", textColor: "#fff", icon: "Ch" },
-  Finding:      { gradFrom: "#34d399", gradTo: "#059669", textColor: "#fff", icon: "!" },
-  Section:      { gradFrom: "#fb923c", gradTo: "#ea580c", textColor: "#fff", icon: "S" },
-  Metric:       { gradFrom: "#818cf8", gradTo: "#4f46e5", textColor: "#fff", icon: "M" },
-  Period:       { gradFrom: "#c084fc", gradTo: "#9333ea", textColor: "#fff", icon: "P" },
-  Counterparty: { gradFrom: "#f87171", gradTo: "#dc2626", textColor: "#fff", icon: "CT" },
-  Transaction:  { gradFrom: "#fde68a", gradTo: "#f59e0b", textColor: "#1e293b", icon: "T" },
-  RiskFlag:     { gradFrom: "#fb7185", gradTo: "#e11d48", textColor: "#fff", icon: "RF" },
-}
-
 const legendTypes: GraphNodeType[] = [
   "Document",
   "Finding",
   "Metric",
   "Chunk",
-  "RiskFlag",
+  "Section",
   "Counterparty",
+  "RiskFlag",
 ]
 
-const GRAPH_W = 900
-const GRAPH_H = 440
-const NODE_R = 26
-const NODE_R_SELECTED = 32
-const TOP_PAD = 64
-const BOTTOM_PAD = 56
-
-function truncateLabel(label: string) {
-  return label.length > 15 ? `${label.slice(0, 14)}…` : label
+const nodeConfig: Record<
+  GraphNodeType,
+  {
+    fill: string
+    border: string
+    text: string
+    shape:
+      | "ellipse"
+      | "round-rectangle"
+      | "diamond"
+      | "hexagon"
+      | "tag"
+      | "rectangle"
+  }
+> = {
+  Document: {
+    fill: "#0f766e",
+    border: "#14b8a6",
+    text: "#f0fdfa",
+    shape: "round-rectangle",
+  },
+  Company: {
+    fill: "#b45309",
+    border: "#f59e0b",
+    text: "#fffbeb",
+    shape: "ellipse",
+  },
+  Chunk: {
+    fill: "#475569",
+    border: "#94a3b8",
+    text: "#f8fafc",
+    shape: "round-rectangle",
+  },
+  Finding: {
+    fill: "#0f766e",
+    border: "#34d399",
+    text: "#ecfdf5",
+    shape: "hexagon",
+  },
+  Metric: {
+    fill: "#3730a3",
+    border: "#818cf8",
+    text: "#eef2ff",
+    shape: "ellipse",
+  },
+  Period: {
+    fill: "#7c3aed",
+    border: "#c084fc",
+    text: "#faf5ff",
+    shape: "tag",
+  },
+  Counterparty: {
+    fill: "#b91c1c",
+    border: "#f87171",
+    text: "#fef2f2",
+    shape: "diamond",
+  },
+  Transaction: {
+    fill: "#c2410c",
+    border: "#fb923c",
+    text: "#fff7ed",
+    shape: "diamond",
+  },
+  RiskFlag: {
+    fill: "#be123c",
+    border: "#fb7185",
+    text: "#fff1f2",
+    shape: "hexagon",
+  },
+  Section: {
+    fill: "#4338ca",
+    border: "#a78bfa",
+    text: "#f5f3ff",
+    shape: "round-rectangle",
+  },
 }
 
-function getPositions(nodes: GraphNode[]): PositionedNode[] {
-  const presentTypes = typeOrder.filter((type) =>
-    nodes.some((n) => n.type === type)
-  )
-  const colCount = presentTypes.length
-  const colGap =
-    colCount > 1 ? (GRAPH_W - 120) / (colCount - 1) : 0
-  const startX = colCount === 1 ? GRAPH_W / 2 : 60
+function formatMetadataKey(key: string) {
+  return key.replaceAll("_", " ")
+}
 
-  const groups = new Map<GraphNodeType, GraphNode[]>()
-  presentTypes.forEach((type) => groups.set(type, []))
-  nodes.forEach((node) => groups.get(node.type)?.push(node))
-
-  const usableH = GRAPH_H - TOP_PAD - BOTTOM_PAD
-
-  return nodes.map((node) => {
-    const colIndex = presentTypes.indexOf(node.type)
-    const siblings = groups.get(node.type) ?? []
-    const nodeIndex = siblings.findIndex((s) => s.id === node.id)
-    const step = siblings.length > 1 ? usableH / (siblings.length - 1) : 0
-
-    return {
-      ...node,
-      x: startX + colIndex * colGap,
-      y:
-        siblings.length > 1
-          ? TOP_PAD + nodeIndex * step
-          : GRAPH_H / 2,
-    }
-  })
+function formatEdgeLabel(label: string) {
+  return label.replaceAll("_", " ").toLowerCase()
 }
 
 function getConnectedEdges(edges: GraphEdge[], nodeId: string) {
-  return edges.filter(
-    (e) => e.source === nodeId || e.target === nodeId
-  )
+  return edges.filter((edge) => edge.source === nodeId || edge.target === nodeId)
 }
 
-function getEdgePath(
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  r = NODE_R
-): string {
-  const dx = x2 - x1
-  const dy = y2 - y1
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  if (dist < 1) return ""
-
-  const ux = dx / dist
-  const uy = dy / dist
-  const sx = x1 + ux * (r + 3)
-  const sy = y1 + uy * (r + 3)
-  const ex = x2 - ux * (r + 14)
-  const ey = y2 - uy * (r + 14)
-
-  const ex2 = ex - sx
-  const ey2 = ey - sy
-  const cx1 = sx + ex2 * 0.35
-  const cy1 = sy + ey2 * 0.05
-  const cx2 = ex - ex2 * 0.35
-  const cy2 = ey - ey2 * 0.05
-
-  return `M ${sx} ${sy} C ${cx1} ${cy1} ${cx2} ${cy2} ${ex} ${ey}`
+function buildElements(graph: GraphData): ElementDefinition[] {
+  return [
+    ...graph.nodes.map((node) => ({
+      data: {
+        id: node.id,
+        label: node.label,
+        type: node.type,
+      },
+    })),
+    ...graph.edges.map((edge) => ({
+      data: {
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        label: formatEdgeLabel(edge.label),
+      },
+    })),
+  ]
 }
 
-function getMid(x1: number, y1: number, x2: number, y2: number) {
-  return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 - 10 }
+function buildStylesheet() {
+  const styles: any[] = [
+    {
+      selector: "node",
+      style: {
+        label: "data(label)",
+        width: 54,
+        height: 54,
+        color: "#f8fafc",
+        "font-size": 10,
+        "font-weight": 650,
+        "text-wrap": "wrap",
+        "text-max-width": "112px",
+        "text-valign": "center",
+        "text-halign": "center",
+        "text-outline-color": "#0f172a",
+        "text-outline-width": 3,
+        "border-width": 2,
+        "border-color": "#cbd5e1",
+        "overlay-opacity": 0,
+        "shadow-blur": 0,
+        "shadow-opacity": 0,
+        opacity: 1,
+        "transition-property":
+          "background-color border-color border-width opacity width height shadow-opacity shadow-blur",
+        "transition-duration": 220,
+      },
+    },
+    {
+      selector: "edge",
+      style: {
+        width: 1.7,
+        opacity: 0.5,
+        label: "data(label)",
+        color: "#475569",
+        "font-size": 8,
+        "text-opacity": 0,
+        "text-rotation": "autorotate",
+        "text-background-color": "#f8fafc",
+        "text-background-opacity": 0,
+        "text-background-padding": "3px",
+        "text-background-shape": "roundrectangle",
+        "text-margin-y": "-8px",
+        "curve-style": "bezier",
+        "line-color": "#94a3b8",
+        "target-arrow-color": "#94a3b8",
+        "target-arrow-shape": "triangle",
+        "arrow-scale": 1,
+        "transition-property":
+          "line-color target-arrow-color width opacity text-opacity text-background-opacity",
+        "transition-duration": 220,
+      },
+    },
+    {
+      selector: "node.is-active",
+      style: {
+        "border-width": 3,
+        "shadow-color": "#67e8f9",
+        "shadow-opacity": 0.28,
+        "shadow-blur": 16,
+      },
+    },
+    {
+      selector: "node.is-neighbor",
+      style: {
+        "shadow-color": "#22d3ee",
+        "shadow-opacity": 0.18,
+        "shadow-blur": 12,
+      },
+    },
+    {
+      selector: "node.is-selected",
+      style: {
+        width: 68,
+        height: 68,
+        "border-width": 4,
+        "border-color": "#e0f2fe",
+        "shadow-color": "#0ea5e9",
+        "shadow-opacity": 0.48,
+        "shadow-blur": 26,
+      },
+    },
+    {
+      selector: "node.is-muted",
+      style: {
+        opacity: 0.16,
+        "text-opacity": 0.18,
+      },
+    },
+    {
+      selector: "edge.is-neighbor",
+      style: {
+        width: 2.8,
+        opacity: 0.98,
+        "line-color": "#0f766e",
+        "target-arrow-color": "#0f766e",
+        "text-opacity": 1,
+        "text-background-opacity": 0.92,
+      },
+    },
+    {
+      selector: "edge.is-selected",
+      style: {
+        width: 3.2,
+        opacity: 1,
+        "line-color": "#0284c7",
+        "target-arrow-color": "#0284c7",
+        "text-opacity": 1,
+        "text-background-opacity": 0.96,
+      },
+    },
+    {
+      selector: "edge.is-muted",
+      style: {
+        opacity: 0.08,
+        "text-opacity": 0,
+      },
+    },
+  ]
+
+  for (const [type, config] of Object.entries(nodeConfig) as [
+    GraphNodeType,
+    (typeof nodeConfig)[GraphNodeType],
+  ][]) {
+    styles.push({
+      selector: `node[type = "${type}"]`,
+      style: {
+        shape: config.shape,
+        "background-color": config.fill,
+        "border-color": config.border,
+        color: config.text,
+      },
+    })
+  }
+
+  return styles as unknown as cytoscape.StylesheetJson
+}
+
+function syncGraphState(
+  cy: Core,
+  activeNodeIds: string[],
+  selectedNodeId: string,
+  focusMode: "finding" | "all"
+) {
+  const activeSet = new Set(activeNodeIds)
+
+  cy.nodes().removeClass("is-active is-neighbor is-selected is-muted")
+  cy.edges().removeClass("is-neighbor is-selected is-muted")
+
+  cy.nodes().forEach((node) => {
+    if (activeSet.has(node.id())) {
+      node.addClass("is-active")
+    }
+  })
+
+  const selectedNode = selectedNodeId ? cy.getElementById(selectedNodeId) : null
+  if (selectedNode && !selectedNode.empty()) {
+    selectedNode.addClass("is-selected")
+    const neighborhood = selectedNode.closedNeighborhood()
+    neighborhood.nodes().addClass("is-neighbor")
+    neighborhood.edges().addClass("is-neighbor")
+
+    neighborhood.edges().forEach((edge) => {
+      if (
+        edge.source().id() === selectedNode.id() ||
+        edge.target().id() === selectedNode.id()
+      ) {
+        edge.addClass("is-selected")
+      }
+    })
+  }
+
+  if (focusMode === "finding") {
+    cy.nodes().forEach((node) => {
+      if (
+        !activeSet.has(node.id()) &&
+        !node.hasClass("is-selected") &&
+        !node.hasClass("is-neighbor")
+      ) {
+        node.addClass("is-muted")
+      }
+    })
+
+    cy.edges().forEach((edge: EdgeSingular) => {
+      const sourceId = edge.source().id()
+      const targetId = edge.target().id()
+
+      if (
+        !activeSet.has(sourceId) &&
+        !activeSet.has(targetId) &&
+        !edge.hasClass("is-neighbor")
+      ) {
+        edge.addClass("is-muted")
+      }
+    })
+  }
 }
 
 export default function GraphPanel({
@@ -150,31 +356,174 @@ export default function GraphPanel({
   activeNodeIds,
   findingTitle,
 }: GraphPanelProps) {
-  const activeNodeSet = new Set(activeNodeIds)
-  const positionedNodes = getPositions(graph.nodes)
-  const posMap = new Map(positionedNodes.map((n) => [n.id, n] as const))
-
-  const [selectedNodeId, setSelectedNodeId] = React.useState<string>(
+  const containerRef = React.useRef<HTMLDivElement | null>(null)
+  const cyRef = React.useRef<Core | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = React.useState(
     activeNodeIds[0] ?? graph.nodes[0]?.id ?? ""
   )
+  const [focusMode, setFocusMode] = React.useState<"finding" | "all">("finding")
 
   React.useEffect(() => {
     if (activeNodeIds.length > 0) {
       setSelectedNodeId(activeNodeIds[0])
       return
     }
-    if (graph.nodes.length > 0) setSelectedNodeId(graph.nodes[0].id)
+
+    if (graph.nodes.length > 0) {
+      setSelectedNodeId(graph.nodes[0].id)
+    }
   }, [activeNodeIds, graph.nodes])
 
+  React.useEffect(() => {
+    if (!containerRef.current) {
+      return
+    }
+
+    const cy = cytoscape({
+      container: containerRef.current,
+      elements: buildElements(graph),
+      layout: {
+        name: "cose",
+        animate: false,
+        fit: true,
+        padding: 56,
+        nodeRepulsion: 120000,
+        idealEdgeLength: 160,
+        edgeElasticity: 90,
+        gravity: 0.2,
+        numIter: 900,
+      },
+      style: buildStylesheet(),
+      userZoomingEnabled: true,
+      userPanningEnabled: true,
+      boxSelectionEnabled: false,
+      autoungrabify: false,
+      minZoom: 0.45,
+      maxZoom: 2.2,
+      wheelSensitivity: 0.2,
+    })
+
+    cy.on("tap", "node", (event) => {
+      setSelectedNodeId(event.target.id())
+    })
+
+    cyRef.current = cy
+    syncGraphState(cy, activeNodeIds, selectedNodeId, focusMode)
+
+    const resizeObserver = new ResizeObserver(() => {
+      cy.resize()
+    })
+
+    resizeObserver.observe(containerRef.current)
+
+    return () => {
+      resizeObserver.disconnect()
+      cy.destroy()
+      cyRef.current = null
+    }
+  }, [graph])
+
+  React.useEffect(() => {
+    const cy = cyRef.current
+    if (!cy) {
+      return
+    }
+
+    syncGraphState(cy, activeNodeIds, selectedNodeId, focusMode)
+  }, [activeNodeIds, focusMode, selectedNodeId])
+
   const selectedNode =
-    graph.nodes.find((n) => n.id === selectedNodeId) ?? graph.nodes[0]
+    graph.nodes.find((node) => node.id === selectedNodeId) ?? graph.nodes[0]
   const selectedEdges = selectedNode
     ? getConnectedEdges(graph.edges, selectedNode.id)
     : []
-
-  const presentLegend = legendTypes.filter((t) =>
-    graph.nodes.some((n) => n.type === t)
+  const presentLegend = legendTypes.filter((type) =>
+    graph.nodes.some((node) => node.type === type)
   )
+
+  function runLayout(mode: "cose" | "breadthfirst") {
+    const cy = cyRef.current
+    if (!cy) {
+      return
+    }
+
+    if (mode === "breadthfirst") {
+      const rootId = selectedNodeId || activeNodeIds[0]
+      const roots = rootId ? [rootId] : undefined
+
+      cy.layout({
+        name: "breadthfirst",
+        animate: true,
+        animationDuration: 350,
+        fit: true,
+        padding: 72,
+        directed: true,
+        spacingFactor: 1.15,
+        roots,
+      }).run()
+
+      return
+    }
+
+    cy.layout({
+      name: "cose",
+      animate: true,
+      animationDuration: 350,
+      fit: true,
+      padding: 56,
+      nodeRepulsion: 120000,
+      idealEdgeLength: 160,
+      edgeElasticity: 90,
+      gravity: 0.2,
+      numIter: 900,
+    }).run()
+  }
+
+  function fitGraph() {
+    const cy = cyRef.current
+    if (!cy) {
+      return
+    }
+
+    cy.fit(cy.elements(), 70)
+  }
+
+  function focusSelection() {
+    const cy = cyRef.current
+    if (!cy) {
+      return
+    }
+
+    const selected = selectedNodeId ? cy.getElementById(selectedNodeId) : null
+    if (!selected || selected.empty()) {
+      cy.fit(cy.elements(), 70)
+      return
+    }
+
+    cy.animate({
+      fit: {
+        eles: selected.closedNeighborhood(),
+        padding: 110,
+      },
+      duration: 320,
+    })
+  }
+
+  function zoomGraph(multiplier: number) {
+    const cy = cyRef.current
+    if (!cy) {
+      return
+    }
+
+    const nextZoom = Math.min(2.2, Math.max(0.45, cy.zoom() * multiplier))
+    cy.zoom({
+      level: nextZoom,
+      renderedPosition: {
+        x: cy.width() / 2,
+        y: cy.height() / 2,
+      },
+    })
+  }
 
   return (
     <FadeIn>
@@ -183,7 +532,7 @@ export default function GraphPanel({
         className="panel-surface gap-4 border-0 bg-transparent py-0 shadow-none ring-0"
       >
         <CardHeader className="gap-3 px-0 pt-0">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div>
               <p className="text-sm font-medium tracking-[0.22em] text-primary uppercase">
                 Graph panel
@@ -191,451 +540,128 @@ export default function GraphPanel({
               <CardTitle className="font-heading text-2xl font-semibold">
                 Connected financial facts
               </CardTitle>
+              <p className="mt-2 text-sm/6 text-muted-foreground">
+                {findingTitle} is mapped against sections, metrics, periods,
+                counterparties, and risk flags so the anomaly stays explainable.
+              </p>
             </div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2 }}
-            >
+
+            <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="rounded-full">
                 <Network className="h-3.5 w-3.5" />
-                {activeNodeIds.length} highlighted nodes
+                {graph.nodes.length} nodes
               </Badge>
-            </motion.div>
+              <Badge variant="outline" className="rounded-full">
+                {graph.edges.length} edges
+              </Badge>
+              <Badge variant="outline" className="rounded-full">
+                {focusMode === "finding" ? "Focused view" : "Full graph"}
+              </Badge>
+            </div>
           </div>
-          <p className="text-sm/6 text-muted-foreground">
-            {findingTitle} is mapped against sections, metrics, periods,
-            counterparties, and risk flags so the anomaly remains explainable.
-          </p>
         </CardHeader>
 
         <CardContent className="space-y-5 px-0">
-          {/* Graph canvas */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={focusMode === "finding" ? "default" : "outline"}
+              className="rounded-full"
+              onClick={() =>
+                setFocusMode((current) =>
+                  current === "finding" ? "all" : "finding"
+                )
+              }
+            >
+              <LocateFixed />
+              {focusMode === "finding" ? "Focused view" : "Show focused view"}
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={focusSelection}
+            >
+              <Maximize2 />
+              Focus selection
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={fitGraph}
+            >
+              Fit all
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => runLayout("breadthfirst")}
+            >
+              <LocateFixed />
+              Finding layout
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => runLayout("cose")}
+            >
+              <RotateCcw />
+              Re-layout
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              onClick={() => zoomGraph(1.18)}
+              aria-label="Zoom in"
+            >
+              <ZoomIn />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              onClick={() => zoomGraph(0.85)}
+              aria-label="Zoom out"
+            >
+              <ZoomOut />
+            </Button>
+          </div>
+
           <div className="overflow-hidden rounded-[1.5rem] border border-border/75 bg-background/70 p-3">
-            <div className="data-grid rounded-[1.2rem] bg-background/80">
-              <svg
-                viewBox={`0 0 ${GRAPH_W} ${GRAPH_H}`}
-                className="h-105 w-full"
-                role="img"
-                aria-label="SignalLens relationship graph"
-              >
-                <defs>
-                  {/* Per-type gradients */}
-                  {(
-                    Object.entries(nodeConfig) as [
-                      GraphNodeType,
-                      (typeof nodeConfig)[GraphNodeType],
-                    ][]
-                  ).map(([type, cfg]) => (
-                    <React.Fragment key={type}>
-                      <linearGradient
-                        id={`grad-${type}`}
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="100%"
-                      >
-                        <stop offset="0%" stopColor={cfg.gradFrom} />
-                        <stop offset="100%" stopColor={cfg.gradTo} />
-                      </linearGradient>
-                      <linearGradient
-                        id={`grad-${type}-soft`}
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="100%"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor={cfg.gradFrom}
-                          stopOpacity="0.25"
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor={cfg.gradTo}
-                          stopOpacity="0.1"
-                        />
-                      </linearGradient>
-                    </React.Fragment>
-                  ))}
-
-                  {/* Drop shadow */}
-                  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
-                    <feDropShadow
-                      dx="0"
-                      dy="3"
-                      stdDeviation="5"
-                      floodColor="#000"
-                      floodOpacity="0.2"
-                    />
-                  </filter>
-
-                  {/* Selected glow */}
-                  <filter
-                    id="glow-sel"
-                    x="-50%"
-                    y="-50%"
-                    width="200%"
-                    height="200%"
-                  >
-                    <feGaussianBlur
-                      in="SourceAlpha"
-                      stdDeviation="7"
-                      result="blur"
-                    />
-                    <feFlood
-                      floodColor="#38bdf8"
-                      floodOpacity="0.55"
-                      result="color"
-                    />
-                    <feComposite
-                      in="color"
-                      in2="blur"
-                      operator="in"
-                      result="glow"
-                    />
-                    <feMerge>
-                      <feMergeNode in="glow" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-
-                  {/* Active glow */}
-                  <filter
-                    id="glow-act"
-                    x="-50%"
-                    y="-50%"
-                    width="200%"
-                    height="200%"
-                  >
-                    <feGaussianBlur
-                      in="SourceAlpha"
-                      stdDeviation="4"
-                      result="blur"
-                    />
-                    <feFlood
-                      floodColor="#34d399"
-                      floodOpacity="0.4"
-                      result="color"
-                    />
-                    <feComposite
-                      in="color"
-                      in2="blur"
-                      operator="in"
-                      result="glow"
-                    />
-                    <feMerge>
-                      <feMergeNode in="glow" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-
-                  {/* Arrow markers */}
-                  <marker
-                    id="arr-dim"
-                    markerWidth="8"
-                    markerHeight="6"
-                    refX="7"
-                    refY="3"
-                    orient="auto"
-                  >
-                    <polygon points="0 0, 8 3, 0 6" fill="#cbd5e1" />
-                  </marker>
-                  <marker
-                    id="arr-act"
-                    markerWidth="8"
-                    markerHeight="6"
-                    refX="7"
-                    refY="3"
-                    orient="auto"
-                  >
-                    <polygon points="0 0, 8 3, 0 6" fill="#64748b" />
-                  </marker>
-                  <marker
-                    id="arr-sel"
-                    markerWidth="8"
-                    markerHeight="6"
-                    refX="7"
-                    refY="3"
-                    orient="auto"
-                  >
-                    <polygon points="0 0, 8 3, 0 6" fill="#0ea5e9" />
-                  </marker>
-
-                  {/* Subtle grid pattern */}
-                  <pattern
-                    id="grid"
-                    width="44"
-                    height="44"
-                    patternUnits="userSpaceOnUse"
-                  >
-                    <path
-                      d="M 44 0 L 0 0 0 44"
-                      fill="none"
-                      stroke="#94a3b8"
-                      strokeWidth="0.4"
-                      strokeOpacity="0.18"
-                    />
-                  </pattern>
-                </defs>
-
-                {/* Background */}
-                <rect
-                  width={GRAPH_W}
-                  height={GRAPH_H}
-                  fill="url(#grid)"
-                  rx="12"
-                />
-
-                {/* ── Edges ── */}
-                {graph.edges.map((edge, idx) => {
-                  const src = posMap.get(edge.source)
-                  const tgt = posMap.get(edge.target)
-                  if (!src || !tgt) return null
-
-                  const isSel =
-                    edge.source === selectedNode?.id ||
-                    edge.target === selectedNode?.id
-                  const isAct =
-                    activeNodeSet.has(edge.source) ||
-                    activeNodeSet.has(edge.target)
-
-                  const path = getEdgePath(src.x, src.y, tgt.x, tgt.y)
-                  if (!path) return null
-
-                  const mid = getMid(src.x, src.y, tgt.x, tgt.y)
-                  const stroke = isSel ? "#0ea5e9" : isAct ? "#64748b" : "#cbd5e1"
-                  const sw = isSel ? 2.2 : isAct ? 1.6 : 1
-                  const marker = isSel ? "arr-sel" : isAct ? "arr-act" : "arr-dim"
-                  const labelLen = edge.label.length
-                  const labelW = labelLen * 6.2 + 10
-
-                  return (
-                    <g key={edge.id}>
-                      <motion.path
-                        d={path}
-                        stroke={stroke}
-                        strokeWidth={sw}
-                        fill="none"
-                        strokeLinecap="round"
-                        markerEnd={`url(#${marker})`}
-                        initial={{ pathLength: 0, opacity: 0 }}
-                        animate={{
-                          pathLength: 1,
-                          opacity: isSel ? 1 : isAct ? 0.85 : 0.55,
-                        }}
-                        transition={{
-                          duration: 0.5,
-                          delay: idx * 0.02,
-                          ease: easeOutExpo,
-                        }}
-                      />
-
-                      {/* Edge label — only on selected edge */}
-                      {isSel && (
-                        <motion.g
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.2, delay: 0.25 }}
-                        >
-                          <rect
-                            x={mid.x - labelW / 2}
-                            y={mid.y - 10}
-                            width={labelW}
-                            height={17}
-                            rx={8.5}
-                            fill="#f0f9ff"
-                            stroke="#bae6fd"
-                            strokeWidth={1}
-                          />
-                          <text
-                            x={mid.x}
-                            y={mid.y + 2}
-                            textAnchor="middle"
-                            fontSize={8.5}
-                            fontFamily="'SF Mono', 'Fira Code', monospace"
-                            fontWeight="600"
-                            fill="#0369a1"
-                          >
-                            {edge.label.toUpperCase()}
-                          </text>
-                        </motion.g>
-                      )}
-                    </g>
-                  )
-                })}
-
-                {/* ── Nodes ── */}
-                {positionedNodes.map((node, idx) => {
-                  const cfg = nodeConfig[node.type]
-                  const isAct = activeNodeSet.has(node.id)
-                  const isSel = node.id === selectedNode?.id
-                  const r = isSel ? NODE_R_SELECTED : NODE_R
-                  const label = truncateLabel(node.label)
-                  const labelW = label.length * 7 + 14
-
-                  return (
-                    <motion.g
-                      key={node.id}
-                      transform={`translate(${node.x}, ${node.y})`}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedNodeId(node.id)}
-                      initial={{ opacity: 0, scale: 0.5 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{
-                        duration: 0.38,
-                        delay: 0.08 + idx * 0.045,
-                        ease: easeOutExpo,
-                      }}
-                      whileHover={{ scale: 1.09 }}
-                    >
-                      {/* Active pulsing ring */}
-                      {isAct && !isSel && (
-                        <motion.circle
-                          r={r + 11}
-                          fill={`url(#grad-${node.type}-soft)`}
-                          stroke={cfg.gradFrom}
-                          strokeWidth={1.4}
-                          strokeDasharray="3 5"
-                          animate={{
-                            opacity: [0.35, 0.8, 0.35],
-                            scale: [0.95, 1.06, 0.95],
-                          }}
-                          transition={{
-                            duration: 2.2,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                          }}
-                        />
-                      )}
-
-                      {/* Selected outer halo */}
-                      {isSel && (
-                        <motion.circle
-                          r={r + 14}
-                          fill="none"
-                          stroke={cfg.gradFrom}
-                          strokeWidth={2}
-                          strokeOpacity={0.35}
-                          animate={{
-                            scale: [1, 1.12, 1],
-                            opacity: [0.5, 0.15, 0.5],
-                          }}
-                          transition={{
-                            duration: 1.8,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                          }}
-                        />
-                      )}
-
-                      {/* Main filled circle */}
-                      <circle
-                        r={r}
-                        fill={`url(#grad-${node.type})`}
-                        filter={
-                          isSel
-                            ? "url(#glow-sel)"
-                            : isAct
-                              ? "url(#glow-act)"
-                              : "url(#shadow)"
-                        }
-                        stroke="rgba(255,255,255,0.30)"
-                        strokeWidth={isSel ? 2.5 : 1.5}
-                      />
-
-                      {/* Inner highlight */}
-                      <ellipse
-                        cx={0}
-                        cy={-r * 0.28}
-                        rx={r * 0.48}
-                        ry={r * 0.26}
-                        fill="rgba(255,255,255,0.22)"
-                      />
-
-                      {/* Type icon */}
-                      <motion.text
-                        y={cfg.icon.length > 1 ? 4 : 5}
-                        textAnchor="middle"
-                        fill={cfg.textColor}
-                        fontSize={cfg.icon.length > 1 ? 10 : 13}
-                        fontWeight="700"
-                        fontFamily="system-ui, -apple-system, sans-serif"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.18 + idx * 0.04 }}
-                      >
-                        {cfg.icon}
-                      </motion.text>
-
-                      {/* Label pill */}
-                      <motion.g
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.22 + idx * 0.04 }}
-                      >
-                        <rect
-                          x={-labelW / 2}
-                          y={r + 5}
-                          width={labelW}
-                          height={18}
-                          rx={9}
-                          fill={
-                            isSel ? cfg.gradTo : "rgba(15, 23, 42, 0.75)"
-                          }
-                        />
-                        <text
-                          y={r + 18}
-                          textAnchor="middle"
-                          fill="#f1f5f9"
-                          fontSize={10}
-                          fontWeight={isSel ? "600" : "500"}
-                          fontFamily="system-ui, -apple-system, sans-serif"
-                        >
-                          {label}
-                        </text>
-                      </motion.g>
-                    </motion.g>
-                  )
-                })}
-              </svg>
+            <div className="rounded-[1.2rem] border border-border/60 bg-[radial-gradient(circle_at_top,rgba(20,184,166,0.08),transparent_35%),linear-gradient(to_right,rgba(148,163,184,0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.14)_1px,transparent_1px)] bg-size-[auto,34px_34px,34px_34px]">
+              <div
+                ref={containerRef}
+                className="h-[32rem] w-full cursor-grab active:cursor-grabbing"
+                aria-label="Interactive relationship graph"
+              />
             </div>
           </div>
 
-          {/* Legend */}
+          <p className="text-sm text-muted-foreground">
+            Drag nodes to inspect local structure. The selected finding and its
+            neighborhood stay emphasized, while the full graph is still
+            available when you switch out of focused view.
+          </p>
+
           <div className="flex flex-wrap gap-2">
-            {presentLegend.map((type, idx) => {
-              const cfg = nodeConfig[type]
-              return (
-                <motion.div
-                  key={type}
-                  initial={{ opacity: 0, y: 6 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.2, delay: idx * 0.05 }}
-                >
-                  <Badge
-                    variant="outline"
-                    className="gap-1.5 rounded-full border-transparent"
-                    style={{
-                      backgroundColor: cfg.gradFrom + "1f",
-                      color: cfg.gradTo,
-                    }}
-                  >
-                    <span
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{
-                        background: `linear-gradient(135deg, ${cfg.gradFrom}, ${cfg.gradTo})`,
-                      }}
-                    />
-                    {type}
-                  </Badge>
-                </motion.div>
-              )
-            })}
+            {presentLegend.map((type) => (
+              <Badge
+                key={type}
+                variant="outline"
+                className="gap-1.5 rounded-full border-transparent"
+                style={{
+                  backgroundColor: `${nodeConfig[type].fill}1a`,
+                  color: nodeConfig[type].border,
+                }}
+              >
+                <span
+                  className="inline-block h-2 w-2 rounded-full"
+                  style={{ backgroundColor: nodeConfig[type].border }}
+                />
+                {type}
+              </Badge>
+            ))}
           </div>
 
-          {/* Selected node detail */}
           <AnimatePresence mode="wait">
             {selectedNode ? (
               <motion.div
@@ -646,18 +672,15 @@ export default function GraphPanel({
                 transition={{ duration: 0.22 }}
                 className="grid gap-4 lg:grid-cols-[0.92fr_1.08fr]"
               >
-                {/* Node info */}
                 <div className="rounded-[1.4rem] border border-border/75 bg-background/70 p-5">
                   <div className="flex items-center gap-2">
                     <span
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full"
                       style={{
-                        background: `linear-gradient(135deg, ${nodeConfig[selectedNode.type].gradFrom}, ${nodeConfig[selectedNode.type].gradTo})`,
-                        color: nodeConfig[selectedNode.type].textColor,
+                        backgroundColor: nodeConfig[selectedNode.type].fill,
+                        border: `1px solid ${nodeConfig[selectedNode.type].border}`,
                       }}
-                    >
-                      {nodeConfig[selectedNode.type].icon}
-                    </span>
+                    />
                     <p className="text-sm font-medium text-muted-foreground">
                       Selected node
                     </p>
@@ -665,46 +688,45 @@ export default function GraphPanel({
                   <p className="mt-2 font-heading text-xl font-semibold">
                     {selectedNode.label}
                   </p>
-                  <Badge
-                    variant="secondary"
-                    className="mt-3 rounded-full"
-                    style={{
-                      background:
-                        nodeConfig[selectedNode.type].gradFrom + "22",
-                      color: nodeConfig[selectedNode.type].gradTo,
-                    }}
-                  >
-                    {selectedNode.type}
-                  </Badge>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full"
+                      style={{
+                        backgroundColor: `${nodeConfig[selectedNode.type].fill}1a`,
+                        color: nodeConfig[selectedNode.type].border,
+                      }}
+                    >
+                      {selectedNode.type}
+                    </Badge>
+                    <Badge variant="outline" className="rounded-full">
+                      {selectedEdges.length} linked
+                    </Badge>
+                  </div>
 
                   {selectedNode.metadata &&
                   Object.keys(selectedNode.metadata).length > 0 ? (
                     <div className="mt-4 grid gap-2">
-                      {Object.entries(selectedNode.metadata).map(
-                        ([key, value], i) => (
-                          <motion.div
-                            key={key}
-                            initial={{ opacity: 0, x: -8 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.2, delay: i * 0.04 }}
-                            className="rounded-2xl bg-secondary/70 px-3 py-2 text-sm"
-                          >
-                            <span className="font-medium capitalize">
-                              {key.replaceAll("_", " ")}:
-                            </span>{" "}
-                            {String(value)}
-                          </motion.div>
-                        )
-                      )}
+                      {Object.entries(selectedNode.metadata).map(([key, value]) => (
+                        <div
+                          key={key}
+                          className="rounded-2xl bg-secondary/70 px-3 py-2 text-sm"
+                        >
+                          <span className="font-medium capitalize">
+                            {formatMetadataKey(key)}:
+                          </span>{" "}
+                          {String(value)}
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <p className="mt-4 text-sm text-muted-foreground">
-                      No extra metadata attached.
+                      No extra metadata is attached to this node in the current
+                      payload.
                     </p>
                   )}
                 </div>
 
-                {/* Relationships */}
                 <div className="rounded-[1.4rem] border border-border/75 bg-background/70 p-5">
                   <p className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     <Link2 className="h-4 w-4" />
@@ -712,47 +734,34 @@ export default function GraphPanel({
                   </p>
                   <div className="mt-4 space-y-3">
                     {selectedEdges.length > 0 ? (
-                      selectedEdges.map((edge, i) => {
+                      selectedEdges.map((edge, index) => {
                         const otherId =
-                          edge.source === selectedNode.id
-                            ? edge.target
-                            : edge.source
-                        const otherNode = graph.nodes.find(
-                          (n) => n.id === otherId
-                        )
-                        const otherCfg = otherNode
-                          ? nodeConfig[otherNode.type]
-                          : null
+                          edge.source === selectedNode.id ? edge.target : edge.source
+                        const otherNode = graph.nodes.find((node) => node.id === otherId)
 
                         return (
-                          <motion.div
+                          <motion.button
                             key={edge.id}
-                            initial={{ opacity: 0, y: 10 }}
+                            type="button"
+                            initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.2, delay: i * 0.04 }}
-                            className="rounded-2xl bg-secondary/70 px-4 py-3"
+                            transition={{ duration: 0.18, delay: index * 0.03 }}
+                            className="block w-full rounded-2xl bg-secondary/70 px-4 py-3 text-left transition hover:bg-secondary"
+                            onClick={() => {
+                              if (otherNode) {
+                                setSelectedNodeId(otherNode.id)
+                              }
+                            }}
                           >
                             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[8.5px] font-mono font-semibold tracking-wider text-primary uppercase">
-                              {edge.label}
+                              {formatEdgeLabel(edge.label)}
                             </span>
                             <p className="mt-1.5 font-medium">
-                              {selectedNode.label}{" "}
-                              <span className="text-muted-foreground">→</span>{" "}
-                              {otherNode ? (
-                                <span
-                                  className="cursor-pointer underline underline-offset-2"
-                                  style={{ color: otherCfg?.gradTo }}
-                                  onClick={() =>
-                                    setSelectedNodeId(otherNode.id)
-                                  }
-                                >
-                                  {otherNode.label}
-                                </span>
-                              ) : (
-                                otherId
-                              )}
+                              {selectedNode.label}
+                              <span className="mx-2 text-muted-foreground">→</span>
+                              {otherNode?.label ?? otherId}
                             </p>
-                          </motion.div>
+                          </motion.button>
                         )
                       })
                     ) : (

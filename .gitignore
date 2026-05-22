@@ -1,0 +1,42 @@
+.claude/
+METRICS.md
+Presentation.md
+TEACH_FRONTEND.md
+TEACH.md
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+!**/.env.example
+!**/.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+
+# Node / frontend
+node_modules/
+.next/
+.vercel/
+coverage/
+dist/
+build/
+out/
+*.tsbuildinfo

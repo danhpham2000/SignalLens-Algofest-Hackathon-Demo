@@ -41,44 +41,97 @@ export const PROCESSING_STEPS: ProcessingStep[] = [
 
 export const sampleFiles: SampleFile[] = [
   {
-    id: "earnings-report",
-    name: "ACME Corp Q1 2025 Financial Summary",
-
-    filename: "acme-q1-2025.pdf",
+    id: "treasury-fy-2025-executive-summary",
+    name: "U.S. Treasury FY 2025 executive summary excerpt",
+    description:
+      "A 10-page excerpt from the official FY 2025 Treasury financial report focused on the executive summary and high-level fiscal trends.",
+    filename: "us-financial-report-2025-executive-summary-excerpt.pdf",
     fileType: "pdf",
-    focus: "Anomaly-rich demo PDF",
+    kind: "pdf",
+    focus: "Official government excerpt",
     resultId: "apollo-q4-report",
-    viewHref: "/samples/acme-q1-2025.pdf",
+    viewHref: "/samples/us-financial-report-2025-executive-summary-excerpt.pdf",
     viewLabel: "View PDF",
+    sourceHref:
+      "https://fiscal.treasury.gov/accounting/us-financial-report/2025-report",
+    sourceLabel: "Treasury source",
   },
   {
-    id: "kpi-dashboard",
-    name: "Executive summary image",
-    // description:
-    //   "PNG rendered from a real page of the official Treasury financial report.",
+    id: "treasury-page-image",
+    name: "Treasury report image page",
+    description:
+      "A real PNG extracted from the Treasury report for quick image-upload and OCR demos.",
     filename: "us-financial-report-2025-page-9.png",
     fileType: "png",
+    kind: "image",
     focus: "Real public image",
     resultId: "apollo-q4-report",
     viewHref: "/samples/us-financial-report-2025-page-9.png",
     viewLabel: "View image",
     sourceHref:
-      "https://fiscal.treasury.gov/system/files/2026-03/FY-2025-Financial-Report-3-19-2025%28Final%29.pdf",
+      "https://fiscal.treasury.gov/accounting/us-financial-report/2025-report",
+    sourceLabel: "Treasury source",
   },
-  // {
-  //   id: "executive-summary-jpg",
-  //   name: "Executive summary JPG",
-  //   // description:
-  //   //   "JPEG version of the same real Treasury page for quick image-upload testing.",
-  //   filename: "us-financial-report-2025-page-9.jpg",
-  //   fileType: "jpg",
-  //   focus: "Real public JPG",
-  //   resultId: "apollo-q4-report",
-  //   viewHref: "/samples/us-financial-report-2025-page-9.jpg",
-  //   viewLabel: "View JPG",
-  //   sourceHref:
-  //     "https://fiscal.treasury.gov/system/files/2026-03/FY-2025-Financial-Report-3-19-2025%28Final%29.pdf",
-  // },
+  {
+    id: "bofa-1q25-presentation",
+    name: "Bank of America Q1 2025 presentation excerpt",
+    description:
+      "A 10-page excerpt from the official earnings deck with segment metrics, balance-sheet snapshots, and management framing.",
+    filename: "bofa-1q25-presentation-excerpt.pdf",
+    fileType: "pdf",
+    kind: "pdf",
+    focus: "Official bank excerpt",
+    resultId: "apollo-q4-report",
+    viewHref: "/samples/bofa-1q25-presentation-excerpt.pdf",
+    viewLabel: "View PDF",
+    sourceHref: "https://investor.bankofamerica.com/quarterly-earnings",
+    sourceLabel: "BofA source",
+  },
+  {
+    id: "bofa-1q25-supplemental",
+    name: "Bank of America Q1 2025 supplemental excerpt",
+    description:
+      "A 10-page excerpt from the official supplemental pack with condensed income, balance-sheet, and capital tables.",
+    filename: "bofa-1q25-supplemental-excerpt.pdf",
+    fileType: "pdf",
+    kind: "pdf",
+    focus: "Official supplemental excerpt",
+    resultId: "apollo-q4-report",
+    viewHref: "/samples/bofa-1q25-supplemental-excerpt.pdf",
+    viewLabel: "View PDF",
+    sourceHref: "https://investor.bankofamerica.com/quarterly-earnings",
+    sourceLabel: "BofA source",
+  },
+  {
+    id: "california-budget-summary",
+    name: "California 2025-26 summary charts",
+    description:
+      "A 6-page official statewide spending and revenue charts PDF from California's 2025-26 budget.",
+    filename: "california-2025-26-summary-charts.pdf",
+    fileType: "pdf",
+    kind: "pdf",
+    focus: "Official public spending report",
+    resultId: "apollo-q4-report",
+    viewHref: "/samples/california-2025-26-summary-charts.pdf",
+    viewLabel: "View PDF",
+    sourceHref: "https://ebudget.ca.gov/budget/p/2025-26/BudgetSummary",
+    sourceLabel: "California source",
+  },
+  {
+    id: "california-budget-chart-image",
+    name: "California budget chart image",
+    description:
+      "A PNG exported from California's official 2025-26 summary charts PDF for quick chart-image demos.",
+    filename: "california-2025-26-summary-chart-image.png",
+    fileType: "png",
+    kind: "chart-image",
+    focus: "Official chart image",
+    resultId: "apollo-q4-report",
+    viewHref: "/samples/california-2025-26-summary-chart-image.png",
+    viewLabel: "View image",
+    sourceHref: "https://ebudget.ca.gov/budget/p/2025-26/BudgetSummary",
+    sourceLabel: "California source",
+  },
 ]
 
 const demoResults: Record<string, ResultResponse> = {
