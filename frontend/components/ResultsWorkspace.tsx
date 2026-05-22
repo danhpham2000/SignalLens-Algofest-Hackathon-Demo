@@ -3,9 +3,12 @@
 import * as React from "react"
 import { Clock3, FileStack } from "lucide-react"
 
+import AskGraphPanel from "@/components/AskGraphPanel"
 import EmptyState from "@/components/EmptyState"
+import ExportBriefButton from "@/components/ExportBriefButton"
 import GraphPanel from "@/components/GraphPanel"
 import Header from "@/components/Header"
+import ProvenanceViewer from "@/components/ProvenanceViewer"
 import { Badge } from "@/components/ui/badge"
 import { FadeIn } from "@/components/ui/motion"
 import { type EvidenceItem, type ResultResponse } from "@/lib/types"
@@ -44,9 +47,10 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
   const activeFinding =
     demoFindings.find((finding) => finding.id === activeFindingId) ??
     demoFindings[0]
-  const activeEvidence = result.evidence
-    .filter((item) => activeFinding?.evidenceIds.includes(item.id))
-    .slice(0, 2)
+  const activeEvidence = result.evidence.filter((item) =>
+    activeFinding?.evidenceIds.includes(item.id)
+  )
+  const activeEvidenceSnippets = activeEvidence.slice(0, 2)
   const activeGraphNodeIds = Array.from(
     new Set([activeFinding.id, ...activeFinding.relatedNodeIds])
   )
@@ -75,21 +79,24 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
       <main className="page-shell space-y-6 py-8">
         <section className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
           <FadeIn className="panel-surface rounded-[1.75rem] p-6 sm:p-8">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="rounded-full px-3 py-1">
-                <FileStack className="h-3.5 w-3.5" />
-                {result.documentType}
-              </Badge>
-              <Badge variant="outline" className="rounded-full px-3 py-1">
-                <Clock3 className="h-3.5 w-3.5" />
-                {result.lastUpdated}
-              </Badge>
-              <Badge
-                variant="secondary"
-                className="rounded-full px-3 py-1 font-mono"
-              >
-                {result.filename}
-              </Badge>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="rounded-full px-3 py-1">
+                  <FileStack className="h-3.5 w-3.5" />
+                  {result.documentType}
+                </Badge>
+                <Badge variant="outline" className="rounded-full px-3 py-1">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  {result.lastUpdated}
+                </Badge>
+                <Badge
+                  variant="secondary"
+                  className="rounded-full px-3 py-1 font-mono"
+                >
+                  {result.filename}
+                </Badge>
+              </div>
+              <ExportBriefButton result={result} />
             </div>
 
             <p className="mt-6 text-sm font-medium tracking-[0.22em] text-primary uppercase">
@@ -224,8 +231,8 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
                 </Badge>
               </div>
 
-              {activeEvidence.length > 0 ? (
-                activeEvidence.map((item) => (
+              {activeEvidenceSnippets.length > 0 ? (
+                activeEvidenceSnippets.map((item) => (
                   <div
                     key={item.id}
                     className="rounded-[1.3rem] border border-border/80 bg-background/70 p-4"
@@ -236,8 +243,15 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
                     <p className="mt-2 text-sm/6 text-foreground/85">
                       {truncateText(item.content, 220)}
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      {item.sourceLabel ? (
+                        <Badge variant="secondary" className="rounded-full">
+                          {item.sourceLabel}
+                        </Badge>
+                      ) : null}
+                    </div>
                     {formatEvidenceMeta(item) ? (
-                      <p className="mt-3 text-xs text-muted-foreground">
+                      <p className="mt-2 text-xs text-muted-foreground">
                         {formatEvidenceMeta(item)}
                       </p>
                     ) : null}
@@ -251,6 +265,11 @@ export default function ResultsWorkspace({ result }: ResultsWorkspaceProps) {
               )}
             </div>
           </FadeIn>
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-[1.12fr_0.88fr]">
+          <ProvenanceViewer finding={activeFinding} evidence={activeEvidence} />
+          <AskGraphPanel result={result} activeFinding={activeFinding} />
         </section>
 
         <section className="space-y-4">

@@ -49,6 +49,9 @@ class ExtractionService:
         with pdfplumber.open(path) as plumber_document:
             for page_index, page in enumerate(fitz_document, start=1):
                 text_length = 0
+                page_rect = page.rect
+                page_width = float(page_rect.width)
+                page_height = float(page_rect.height)
                 page_dict = page.get_text("dict")
                 for block in page_dict.get("blocks", []):
                     if block.get("type") != 0:
@@ -67,14 +70,29 @@ class ExtractionService:
                             chunk_type=TEXT_CHUNK_TYPE,
                             text=text,
                             bbox=bbox,
-                            metadata={"source": "pdf_text"},
+                            metadata={
+                                "source": "pdf_text",
+                                "page_width": page_width,
+                                "page_height": page_height,
+                            },
                         )
                     )
                     text_length += len(text)
 
                 plumber_page = plumber_document.pages[page_index - 1]
-                raw_tables = plumber_page.extract_tables() or []
-                for table_index, table in enumerate(raw_tables):
+                detected_tables = plumber_page.find_tables() or []
+                if detected_tables:
+                    table_candidates = [
+                        (table_index, table.extract(), table.bbox)
+                        for table_index, table in enumerate(detected_tables)
+                    ]
+                else:
+                    table_candidates = [
+                        (table_index, table, None)
+                        for table_index, table in enumerate(plumber_page.extract_tables() or [])
+                    ]
+
+                for table_index, table, raw_bbox in table_candidates:
                     headers, rows, table_text = self._normalize_table(table)
                     if not table_text:
                         continue
@@ -86,11 +104,14 @@ class ExtractionService:
                             page_number=page_index,
                             chunk_type=TABLE_CHUNK_TYPE,
                             text=table_text,
+                            bbox=self._build_bbox(list(raw_bbox)) if raw_bbox else None,
                             metadata={
                                 "source": "pdf_table",
                                 "table_index": table_index,
                                 "headers": headers,
                                 "rows": rows,
+                                "page_width": page_width,
+                                "page_height": page_height,
                             },
                         )
                     )
@@ -105,7 +126,12 @@ class ExtractionService:
                                 page_number=page_index,
                                 chunk_type=OCR_CHUNK_TYPE,
                                 text=ocr_text,
-                                metadata={"source": source},
+                                bbox=BoundingBox(x0=0, y0=0, x1=page_width, y1=page_height),
+                                metadata={
+                                    "source": source,
+                                    "page_width": page_width,
+                                    "page_height": page_height,
+                                },
                             )
                         )
                     else:
@@ -135,6 +161,9 @@ class ExtractionService:
         if not ocr_text:
             warnings.append("OCR did not return any text for the uploaded image.")
 
+        with Image.open(path) as image:
+            image_width, image_height = image.size
+
         chunks = [
             Chunk(
                 id=uuid4().hex,
@@ -142,7 +171,12 @@ class ExtractionService:
                 page_number=1,
                 chunk_type=IMAGE_CHUNK_TYPE if ocr_text else OCR_CHUNK_TYPE,
                 text=ocr_text or "No text extracted from image.",
-                metadata={"source": source or "none"},
+                bbox=BoundingBox(x0=0, y0=0, x1=float(image_width), y1=float(image_height)),
+                metadata={
+                    "source": source or "image_upload",
+                    "page_width": float(image_width),
+                    "page_height": float(image_height),
+                },
             )
         ]
 

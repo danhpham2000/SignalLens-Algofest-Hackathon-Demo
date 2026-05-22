@@ -20,6 +20,7 @@ type UploadBoxProps = {
   isProcessing?: boolean
   acceptedTypes?: string[]
   maxSizeMB?: number
+  embedded?: boolean
 }
 
 export default function UploadBox({
@@ -27,6 +28,7 @@ export default function UploadBox({
   isProcessing = false,
   acceptedTypes = ["application/pdf", "image/png", "image/jpeg"],
   maxSizeMB = 10,
+  embedded = false,
 }: UploadBoxProps) {
   const inputRef = React.useRef<HTMLInputElement | null>(null)
   const [dragActive, setDragActive] = React.useState(false)
@@ -74,8 +76,13 @@ export default function UploadBox({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: easeOutExpo }}
     >
-      <Card className="panel-surface gap-5 border-0 bg-transparent p-5 shadow-none ring-0">
-        <CardHeader className="px-0 pt-0">
+      <Card
+        className={[
+          "gap-5 border-0 bg-transparent shadow-none ring-0",
+          embedded ? "p-0" : "panel-surface p-5",
+        ].join(" ")}
+      >
+        <CardHeader className={embedded ? "px-0 pt-0" : "px-0 pt-0"}>
           <CardTitle className="font-heading text-2xl font-semibold">
             Upload a financial PDF or screenshot
           </CardTitle>

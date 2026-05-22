@@ -23,6 +23,7 @@ type SampleFilePickerProps = {
   onSelectSample: (sampleId: string) => void
   onLaunchSample: (sample: SampleFile) => void | Promise<void>
   isProcessing?: boolean
+  embedded?: boolean
 }
 
 function getSampleIcon(fileType: SampleFile["fileType"]) {
@@ -53,6 +54,7 @@ export default function SampleFilePicker({
   onSelectSample,
   onLaunchSample,
   isProcessing = false,
+  embedded = false,
 }: SampleFilePickerProps) {
   const selectedSample =
     samples.find((sample) => sample.id === selectedSampleId) ?? samples[0]
@@ -85,7 +87,10 @@ export default function SampleFilePicker({
   return (
     <StaggerGroup
       id="samples"
-      className="panel-surface rounded-[1.75rem] p-5 sm:p-6"
+      className={[
+        "rounded-[1.75rem]",
+        embedded ? "p-0" : "panel-surface p-5 sm:p-6",
+      ].join(" ")}
       delayChildren={0.04}
       stagger={0.06}
     >

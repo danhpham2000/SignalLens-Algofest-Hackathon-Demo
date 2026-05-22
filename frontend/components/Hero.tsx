@@ -151,41 +151,43 @@ export default function Hero() {
       />
 
       <main className="page-shell space-y-10 py-8">
-        <section className="grid gap-7 xl:grid-cols-[0.82fr_1.18fr] xl:items-start">
-          <div className="panel-surface self-start rounded-[2rem] p-6 sm:p-7">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="rounded-full px-3 py-4">
-                Financial document intelligence
-              </Badge>
-            </div>
+        <section className="grid gap-7 xl:grid-cols-[0.82fr_1.18fr] xl:items-stretch">
+          <div className="panel-surface flex h-full flex-col justify-between rounded-[2rem] p-6 sm:p-7">
+            <div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="rounded-full px-3 py-4">
+                  Financial document intelligence
+                </Badge>
+              </div>
 
-            <div className="mt-5 max-w-2xl space-y-4">
-              <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-[2.2rem]">
-                Turn dense finance docs into ranked signals with evidence and a
-                graph view.
-              </h1>
-              <p className="max-w-xl text-sm/7 text-foreground/80 sm:text-base/7">
-                Extract metrics, score anomalies, and open a graph-backed
-                investigation view from one PDF or screenshot.
-              </p>
-            </div>
+              <div className="mt-5 max-w-2xl space-y-4">
+                <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-[2.2rem]">
+                  Turn dense finance docs into ranked signals with evidence and a
+                  graph view.
+                </h1>
+                <p className="max-w-xl text-sm/7 text-foreground/80 sm:text-base/7">
+                  Extract metrics, score anomalies, and open a graph-backed
+                  investigation view from one PDF or screenshot.
+                </p>
+              </div>
 
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Button
-                className="rounded-full"
-                disabled={isProcessing || !selectedSample}
-                onClick={() => {
-                  if (selectedSample) {
-                    handleLaunchSample(selectedSample)
-                  }
-                }}
-              >
-                Analyze selected sample
-                <ArrowRight />
-              </Button>
-              <Button asChild variant="outline" className="rounded-full">
-                <a href="#samples">Browse sample files</a>
-              </Button>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Button
+                  className="rounded-full"
+                  disabled={isProcessing || !selectedSample}
+                  onClick={() => {
+                    if (selectedSample) {
+                      handleLaunchSample(selectedSample)
+                    }
+                  }}
+                >
+                  Analyze selected sample
+                  <ArrowRight />
+                </Button>
+                <Button asChild variant="outline" className="rounded-full">
+                  <a href="#samples">Browse sample files</a>
+                </Button>
+              </div>
             </div>
 
             <div className="mt-7 grid gap-3 sm:grid-cols-3">
@@ -202,68 +204,76 @@ export default function Hero() {
                       <Icon className="h-4.5 w-4.5" />
                     </div>
                     <p className="mt-3 text-sm font-medium">{item.label}</p>
-                    {/* <p className="mt-2 text-sm/6 text-muted-foreground">
-                      {item.description}
-                    </p> */}
                   </HoverLift>
                 )
               })}
             </div>
           </div>
 
-          <div className="space-y-6">
-            <FadeIn delay={0.08}>
+          <FadeIn
+            delay={0.08}
+            className="panel-surface rounded-[2rem] p-6 sm:p-7"
+          >
+            <div className="space-y-6">
               <UploadBox
+                embedded
                 isProcessing={isProcessing}
                 onAnalyze={(file) => runBackendFlow(file)}
               />
-            </FadeIn>
-            <AnimatePresence>
-              {errorMessage ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Alert className="border-destructive/20 bg-destructive/10 text-destructive">
-                    <AlertDescription>{errorMessage}</AlertDescription>
-                  </Alert>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-            <AnimatePresence mode="wait" initial={false}>
-              {isProcessing ? (
-                <motion.div
-                  key="processing"
-                  initial={{ opacity: 0, y: 18 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <ProcessingState
-                    activeStep={activeStep}
-                    steps={PROCESSING_STEPS}
-                  />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="samples"
-                  initial={{ opacity: 0, y: 18 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <SampleFilePicker
-                    samples={sampleFiles}
-                    selectedSampleId={selectedSampleId}
-                    onSelectSample={setSelectedSampleId}
-                    onLaunchSample={handleLaunchSample}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+
+              <AnimatePresence>
+                {errorMessage ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Alert className="border-destructive/20 bg-destructive/10 text-destructive">
+                      <AlertDescription>{errorMessage}</AlertDescription>
+                    </Alert>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
+              <AnimatePresence mode="wait" initial={false}>
+                {isProcessing ? (
+                  <motion.div
+                    key="processing"
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.3 }}
+                    className="border-t border-border/70 pt-6"
+                  >
+                    <ProcessingState
+                      embedded
+                      activeStep={activeStep}
+                      steps={PROCESSING_STEPS}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="samples"
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.3 }}
+                    className="border-t border-border/70 pt-6"
+                  >
+                    <SampleFilePicker
+                      embedded
+                      samples={sampleFiles}
+                      selectedSampleId={selectedSampleId}
+                      onSelectSample={setSelectedSampleId}
+                      onLaunchSample={handleLaunchSample}
+                      isProcessing={isProcessing}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </FadeIn>
         </section>
 
         <section id="workflow" className="grid gap-6 xl:grid-cols-[1fr]">

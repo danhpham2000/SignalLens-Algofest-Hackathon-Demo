@@ -89,6 +89,11 @@ Optional query param:
 
 - `ensure_complete=true|false`
 
+### `GET /result/{document_id}/pages/{page_number}/preview`
+
+Returns a rendered PNG preview for the requested page so the frontend can
+show provenance thumbnails with highlighted source regions.
+
 ### Extra Endpoints
 
 - `GET /health`

@@ -1,4 +1,5 @@
 import {
+  type BackendBoundingBox,
   type BackendDocumentResult,
   type BackendFinding,
   type BackendGraphPayload,
@@ -168,6 +169,31 @@ function toSourceType(chunkType: string): EvidenceItem["sourceType"] {
   return "image"
 }
 
+function toSourceLabel(
+  chunkType: string,
+  metadata: Record<string, unknown>
+): string {
+  const source = typeof metadata.source === "string" ? metadata.source : ""
+
+  if (chunkType === "table" || source === "pdf_table") {
+    return "Table"
+  }
+
+  if (chunkType === "text" || source === "pdf_text") {
+    return "PDF text"
+  }
+
+  if (
+    chunkType === "ocr" ||
+    source === "tesseract" ||
+    source === "openai_vision"
+  ) {
+    return "OCR"
+  }
+
+  return "Image"
+}
+
 function toGraphNodeType(nodeType: string): GraphNodeType {
   const normalized = nodeType.toLowerCase()
 
@@ -334,16 +360,25 @@ function buildEvidenceMap(
   const chunks = result.extraction?.chunks ?? []
 
   const evidence = chunks.map((chunk) => {
+    const sourceLabel = toSourceLabel(chunk.chunk_type, chunk.metadata ?? {})
     const item: EvidenceItem = {
       id: chunk.id,
       sourceType: toSourceType(chunk.chunk_type),
       title: `Page ${chunk.page_number} ${chunk.chunk_type}`,
       content: chunk.text,
       page: chunk.page_number,
-      section:
-        typeof chunk.metadata?.source === "string"
-          ? String(chunk.metadata.source)
-          : chunk.chunk_type,
+      sourceLabel,
+      previewUrl: `${getApiBaseUrl()}/result/${result.document.id}/pages/${chunk.page_number}/preview`,
+      bbox: (chunk.bbox as BackendBoundingBox | null | undefined) ?? undefined,
+      pageWidth:
+        typeof chunk.metadata?.page_width === "number"
+          ? chunk.metadata.page_width
+          : undefined,
+      pageHeight:
+        typeof chunk.metadata?.page_height === "number"
+          ? chunk.metadata.page_height
+          : undefined,
+      section: sourceLabel,
     }
 
     chunkLookup.set(chunk.id, item)
@@ -384,6 +419,7 @@ function mapFindings(
         ...finding.metric_ids,
         ...finding.evidence_ids,
       ],
+      metadata: finding.metadata,
       scoreBreakdown: {
         changeScore: finding.score_breakdown.change_score,
         severityScore: finding.score_breakdown.severity_score,

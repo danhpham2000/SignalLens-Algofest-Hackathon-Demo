@@ -8,18 +8,23 @@ import { type ProcessingStep } from "@/lib/types"
 type ProcessingStateProps = {
   activeStep: number
   steps: ProcessingStep[]
+  embedded?: boolean
 }
 
 export default function ProcessingState({
   activeStep,
   steps,
+  embedded = false,
 }: ProcessingStateProps) {
   const progressValue =
     steps.length > 0 ? ((activeStep + 1) / steps.length) * 100 : 0
 
   return (
     <StaggerGroup
-      className="panel-surface rounded-[1.75rem] p-5 sm:p-6"
+      className={[
+        "rounded-[1.75rem]",
+        embedded ? "p-0" : "panel-surface p-5 sm:p-6",
+      ].join(" ")}
       stagger={0.05}
     >
       <StaggerItem y={10}>

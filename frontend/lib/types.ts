@@ -38,6 +38,13 @@ export interface ProcessingStep {
   description: string
 }
 
+export interface BoundingBox {
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+}
+
 export interface EvidenceItem {
   id: string
   sourceType: EvidenceSourceType
@@ -45,6 +52,11 @@ export interface EvidenceItem {
   content: string
   page?: number
   section?: string
+  sourceLabel?: string
+  previewUrl?: string
+  bbox?: BoundingBox
+  pageWidth?: number
+  pageHeight?: number
 }
 
 export interface ScoreBreakdown {
@@ -70,6 +82,7 @@ export interface Finding {
   recommendation?: string
   evidenceIds: string[]
   relatedNodeIds: string[]
+  metadata?: Record<string, unknown>
   scoreBreakdown: ScoreBreakdown
 }
 

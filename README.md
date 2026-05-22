@@ -28,7 +28,9 @@ The current demo flow is optimized for a 2-5 minute presentation:
 - Landing page with sample files and direct upload
 - Step-by-step processing state
 - Results page with a compact summary, top findings, focused review, and supporting evidence
-- Simple graph preview with readable spacing, edge labels, and relationship direction
+- Provenance viewer with page thumbnails, highlighted source regions, source type, and confidence
+- Analyst brief export for one-click demo documentation
+- Interactive graph plus canned, citation-first graph prompts
 
 ## Architecture
 
@@ -72,6 +74,7 @@ Optional Integrations
 - `POST /analyze` computes ranked findings with deterministic scoring.
 - `POST /explain` adds summary and grounded explanations.
 - `GET /result/{document_id}` returns the full payload for the frontend.
+- `GET /result/{document_id}/pages/{page_number}/preview` returns a rendered PNG page preview for provenance review.
 - `GET /graph/{document_id}` returns graph nodes and edges for visualization.
 
 ### Frontend Flow
@@ -202,14 +205,11 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 The frontend ships with demo assets in `frontend/public/samples/`:
 
 - `us-financial-report-2025-executive-summary-excerpt.pdf`
-- `bofa-1q25-presentation-excerpt.pdf`
-- `bofa-1q25-supplemental-excerpt.pdf`
-- `california-2025-26-summary-charts.pdf`
 - `california-2025-26-summary-chart-image.png`
 - `us-financial-report-2025-page-9.png`
 
-These support PDF, image, and chart-image demo paths using real public
-financial and spending data, with the PDF samples limited to 10 pages or
+These support one PDF path plus image and chart-image demo paths using real
+public financial and spending data, with the PDF sample limited to 10 pages or
 fewer.
 
 ## Notes

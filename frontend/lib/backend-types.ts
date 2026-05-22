@@ -10,12 +10,20 @@ export interface BackendDocumentRecord {
   metadata: Record<string, unknown>
 }
 
+export interface BackendBoundingBox {
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+}
+
 export interface BackendChunk {
   id: string
   document_id: string
   page_number: number
   chunk_type: string
   text: string
+  bbox?: BackendBoundingBox | null
   metadata: Record<string, unknown>
 }
 
