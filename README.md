@@ -1,6 +1,6 @@
 # SignalLens
 
-SignalLens is a hackathon project for turning dense financial PDFs or screenshots into ranked, explainable risk signals. The app extracts text and tables, detects candidate metrics, scores anomalies with a visible formula, and presents the result in a short demo-friendly workflow with evidence and a simple graph.
+SignalLens is a hackathon project for turning dense financial PDFs or screenshots into ranked, explainable risk signals. The app extracts text and tables, detects candidate metrics, scores anomalies with a visible formula, and presents the result in a short demo-friendly workflow with evidence, provenance, and an interactive graph.
 
 ## Problem
 
@@ -18,8 +18,10 @@ SignalLens provides a lightweight end-to-end flow:
 1. Upload a PDF or screenshot.
 2. Extract text, tables, metrics, periods, and supporting chunks.
 3. Rank anomalies with deterministic scoring.
-4. Generate explanations and a summary.
-5. Show the strongest findings in a simple results UI with evidence and a readable graph preview.
+4. Build a compare view from current versus prior periods where the document exposes them.
+5. Run official-data verification where a supported public benchmark exists.
+6. Generate explanations and a summary.
+7. Show the strongest findings in a simplified results workspace with compare, trust, and graph investigation.
 
 ## Demo Experience
 
@@ -27,10 +29,31 @@ The current demo flow is optimized for a 2-5 minute presentation:
 
 - Landing page with sample files and direct upload
 - Step-by-step processing state
-- Results page with a compact summary, top findings, focused review, and supporting evidence
+- Results page with a compact overview plus focused tabs for findings, compare, trust, and graph review
 - Provenance viewer with page thumbnails, highlighted source regions, source type, and confidence
+- Official-data verification with `verified`, `mismatch`, and `document-only` states
 - Analyst brief export for one-click demo documentation
 - Interactive graph plus canned, citation-first graph prompts
+
+## Best Fintech Direction
+
+If you want the project to feel like a real fintech product instead of a PDF summarizer, the strongest next features are:
+
+1. Compare mode
+   - Compare current vs prior quarter, filing, budget, or report page.
+   - Label signals as new, worsening, resolved, or persistent.
+   - This is the highest-value upgrade because analysts care about change, not just extraction.
+2. Verification mode
+   - Cross-check extracted claims against official public datasets and show `verified`, `mismatch`, or `document-only`.
+   - Best follow-on sources for this repo are SEC EDGAR/XBRL, FDIC bank data, Treasury Fiscal Data, and FRED.
+3. Monitoring mode
+   - Save runs, track the same issuer or agency across time, and surface watchlist alerts.
+   - Postgres and Neo4j make this possible without changing the core ingestion flow.
+4. Benchmark mode
+   - Show whether a finding is unusual versus sector, peer, or macro context.
+   - Examples: debt trend versus Treasury data, bank ratios versus FDIC data, or funding conditions versus FRED series.
+
+These are the features most likely to strengthen the hackathon pitch because they align with how finance teams actually review risk: prove the claim, compare over time, and put the number in context.
 
 ## Architecture
 
@@ -40,7 +63,12 @@ Next.js Frontend
   app/results/[id]/page.tsx
   components/Hero.tsx
   components/ResultsWorkspace.tsx
-  components/SimpleGraphPreview.tsx
+  components/ComparePanel.tsx
+  components/GraphPanel.tsx
+  components/ProvenanceViewer.tsx
+  components/VerificationPanel.tsx
+  components/AskGraphPanel.tsx
+  components/ExportBriefButton.tsx
   lib/api.ts
         |
         v
@@ -81,8 +109,11 @@ Optional Integrations
 
 - `frontend/components/Hero.tsx` drives the landing page and upload/sample launch flow.
 - `frontend/lib/api.ts` runs the backend pipeline and transforms backend payloads into frontend-friendly result objects.
-- `frontend/components/ResultsWorkspace.tsx` renders the simplified demo view.
-- `frontend/components/SimpleGraphPreview.tsx` renders the focused graph with directional labeled edges.
+- `frontend/components/ResultsWorkspace.tsx` renders the simplified tabbed review workspace.
+- `frontend/components/ComparePanel.tsx` renders compact period-over-period comparisons.
+- `frontend/components/ProvenanceViewer.tsx` renders evidence thumbnails with highlighted source regions.
+- `frontend/components/VerificationPanel.tsx` renders official-source verification checks.
+- `frontend/components/GraphPanel.tsx` renders the interactive investigation graph.
 
 ## Tech Stack
 
@@ -147,10 +178,10 @@ Frontend URL:
 2. Choose a sample file or upload your own PDF, PNG, or JPG
 3. Let the pipeline run through extraction, graph building, ranking, and explanation
 4. Walk through the results page:
-   - summary
-   - top findings
-   - focused review
-   - simple graph with directional relationships
+   - overview
+   - findings tab
+   - evidence tab with provenance
+   - graph tab with prompts and relationships
 
 ## Environment Variables
 
@@ -218,6 +249,27 @@ fewer.
 - If Neo4j is not configured, graph sync is skipped and the app still renders a usable graph payload.
 - If Tesseract is unavailable, image OCR can fall back to OpenAI vision when `OPENAI_API_KEY` is set.
 - The project is optimized for single-document interactive demos, not production batch processing.
+
+## Recommended Demo Configuration
+
+For the strongest demo and best path toward a fintech-style product, run with:
+
+- OpenAI enabled for grounded explanations
+- Postgres / Neon enabled for persisted runs and future watchlists
+- Neo4j enabled for graph sync and multi-document relationship views
+- The current default ports:
+  - frontend: `http://127.0.0.1:3000`
+  - backend: `http://127.0.0.1:8000`
+
+With that setup, the current repo already demonstrates:
+
+- deterministic scoring
+- evidence-backed provenance
+- analyst-brief export
+- graph-based investigation
+- database-ready persistence
+
+The next meaningful product step is not more extraction. It is adding time-series comparison and official-data verification on top of the existing pipeline.
 
 ## Additional Docs
 

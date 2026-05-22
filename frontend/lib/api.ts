@@ -1,10 +1,12 @@
 import {
   type BackendBoundingBox,
+  type BackendComparisonSummary,
   type BackendDocumentResult,
   type BackendFinding,
   type BackendGraphPayload,
   type BackendGraphNode,
   type BackendUploadResponse,
+  type BackendVerificationSummary,
 } from "@/lib/backend-types"
 import { getResultById } from "@/lib/demo-data"
 import {
@@ -14,6 +16,7 @@ import {
   type GraphNodeType,
   type ResultResponse,
   type Severity,
+  type VerificationCheck,
 } from "@/lib/types"
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000"
@@ -43,7 +46,21 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   })
 
   if (!response.ok) {
+    const contentType = response.headers.get("content-type") ?? ""
     const detail = await response.text()
+
+    if (path === "/upload" && response.status === 405) {
+      throw new Error(
+        `POST /upload returned 405 from ${getApiBaseUrl()}. SignalLens is likely pointed at a different app on that port. Check NEXT_PUBLIC_API_BASE_URL and make sure the FastAPI backend for this repo is running.`
+      )
+    }
+
+    if (contentType.includes("text/html")) {
+      throw new Error(
+        `Expected the SignalLens API at ${getApiBaseUrl()}${path}, but received HTML instead. NEXT_PUBLIC_API_BASE_URL is likely pointing to the wrong local server.`
+      )
+    }
+
     throw new Error(detail || `Request failed for ${path}`)
   }
 
@@ -220,7 +237,7 @@ function toMetricDelta(finding: BackendFinding) {
   const currentUnit = finding.metadata?.current_unit
   const period = finding.metadata?.period
 
-  if (typeof changePercent === "number") {
+  if (typeof changePercent === "number" && Math.abs(changePercent) <= 500) {
     const sign = changePercent > 0 ? "+" : ""
     return `${sign}${changePercent.toFixed(1)}%`
   }
@@ -433,18 +450,119 @@ function mapFindings(
 }
 
 function mapGraph(graph: BackendGraphPayload): GraphData {
+  const seenNodeIds = new Set<string>()
+  const nodes = graph.nodes.filter((node: BackendGraphNode) => {
+    if (seenNodeIds.has(node.id)) {
+      return false
+    }
+    seenNodeIds.add(node.id)
+    return true
+  })
+
+  const seenEdgeKeys = new Set<string>()
+  const edges = graph.edges.filter((edge) => {
+    const edgeKey = `${edge.source}::${edge.target}::${edge.label}`
+    if (seenEdgeKeys.has(edgeKey)) {
+      return false
+    }
+    seenEdgeKeys.add(edgeKey)
+    return true
+  })
+
   return {
-    nodes: graph.nodes.map((node: BackendGraphNode) => ({
+    nodes: nodes.map((node: BackendGraphNode) => ({
       id: node.id,
       label: node.label,
       type: toGraphNodeType(node.node_type),
       metadata: node.metadata as Record<string, string | number | boolean>,
     })),
-    edges: graph.edges.map((edge, index) => ({
+    edges: edges.map((edge, index) => ({
       id: `${edge.source}-${edge.target}-${index}`,
       source: edge.source,
       target: edge.target,
       label: edge.label,
+    })),
+  }
+}
+
+function mapComparison(
+  comparison: BackendComparisonSummary | null | undefined
+): ResultResponse["comparison"] {
+  if (!comparison) {
+    return {
+      mode: "none",
+      headline: "No comparison is available yet.",
+      summary: "SignalLens needs a comparable prior period to build a change view.",
+      changes: [],
+    }
+  }
+
+  return {
+    mode:
+      comparison.mode === "document_periods" ||
+      comparison.mode === "baseline_document"
+        ? comparison.mode
+        : "none",
+    headline: comparison.headline,
+    summary: comparison.summary,
+    baselineLabel: comparison.baseline_label ?? undefined,
+    changes: comparison.changes.map((change) => ({
+      id: change.id,
+      label: change.label,
+      status:
+        change.status === "worsening" ||
+        change.status === "improving" ||
+        change.status === "stable"
+          ? change.status
+          : "stable",
+      direction:
+        change.direction === "up" ||
+        change.direction === "down" ||
+        change.direction === "flat"
+          ? change.direction
+          : "flat",
+      currentValueLabel: change.current_value_label,
+      previousValueLabel: change.previous_value_label ?? undefined,
+      changePercentLabel: change.change_percent_label ?? undefined,
+      periodLabel:
+        change.period_current && change.period_previous
+          ? `${change.period_previous} -> ${change.period_current}`
+          : change.period_current ?? change.period_previous ?? undefined,
+      evidenceIds: change.evidence_ids,
+    })),
+  }
+}
+
+function mapVerification(
+  verification: BackendVerificationSummary | null | undefined
+): ResultResponse["verification"] {
+  if (!verification) {
+    return {
+      profileLabel: "Unclassified financial document",
+      headline: "No official verification is available yet.",
+      checks: [],
+    }
+  }
+
+  return {
+    profileLabel: verification.profile_label,
+    headline: verification.headline,
+    checks: verification.checks.map((check): VerificationCheck => ({
+      id: check.id,
+      title: check.title,
+      status:
+        check.status === "verified" ||
+        check.status === "mismatch" ||
+        check.status === "document-only" ||
+        check.status === "unavailable"
+          ? check.status
+          : "unavailable",
+      sourceName: check.source_name,
+      sourceUrl: check.source_url ?? undefined,
+      summary: check.summary,
+      documentValueLabel: check.document_value_label ?? undefined,
+      officialValueLabel: check.official_value_label ?? undefined,
+      evidenceIds: check.evidence_ids,
     })),
   }
 }
@@ -505,6 +623,8 @@ export function transformBackendResult(
     findings,
     evidence,
     graph: mapGraph(graph),
+    comparison: mapComparison(result.comparison),
+    verification: mapVerification(result.verification),
   }
 }
 

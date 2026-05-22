@@ -19,8 +19,16 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { FadeIn } from "@/components/ui/motion"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import {
   type GraphData,
   type GraphEdge,
@@ -356,12 +364,14 @@ export default function GraphPanel({
   activeNodeIds,
   findingTitle,
 }: GraphPanelProps) {
+  const relationshipsPerPage = 5
   const containerRef = React.useRef<HTMLDivElement | null>(null)
   const cyRef = React.useRef<Core | null>(null)
   const [selectedNodeId, setSelectedNodeId] = React.useState(
     activeNodeIds[0] ?? graph.nodes[0]?.id ?? ""
   )
   const [focusMode, setFocusMode] = React.useState<"finding" | "all">("finding")
+  const [relationshipsPage, setRelationshipsPage] = React.useState(1)
 
   React.useEffect(() => {
     if (activeNodeIds.length > 0) {
@@ -437,9 +447,27 @@ export default function GraphPanel({
   const selectedEdges = selectedNode
     ? getConnectedEdges(graph.edges, selectedNode.id)
     : []
+  const totalRelationshipPages = Math.max(
+    1,
+    Math.ceil(selectedEdges.length / relationshipsPerPage)
+  )
+  const paginatedSelectedEdges = selectedEdges.slice(
+    (relationshipsPage - 1) * relationshipsPerPage,
+    relationshipsPage * relationshipsPerPage
+  )
   const presentLegend = legendTypes.filter((type) =>
     graph.nodes.some((node) => node.type === type)
   )
+
+  React.useEffect(() => {
+    setRelationshipsPage(1)
+  }, [selectedNodeId])
+
+  React.useEffect(() => {
+    if (relationshipsPage > totalRelationshipPages) {
+      setRelationshipsPage(totalRelationshipPages)
+    }
+  }, [relationshipsPage, totalRelationshipPages])
 
   function runLayout(mode: "cose" | "breadthfirst") {
     const cy = cyRef.current
@@ -531,37 +559,20 @@ export default function GraphPanel({
         id="graph-panel"
         className="panel-surface gap-4 border-0 bg-transparent py-0 shadow-none ring-0"
       >
-        <CardHeader className="gap-3 px-0 pt-0">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-            <div>
-              <p className="text-sm font-medium tracking-[0.22em] text-primary uppercase">
-                Graph panel
-              </p>
-              <CardTitle className="font-heading text-2xl font-semibold">
-                Connected financial facts
-              </CardTitle>
-              <p className="mt-2 text-sm/6 text-muted-foreground">
-                {findingTitle} is mapped against sections, metrics, periods,
-                counterparties, and risk flags so the anomaly stays explainable.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="rounded-full">
-                <Network className="h-3.5 w-3.5" />
-                {graph.nodes.length} nodes
-              </Badge>
-              <Badge variant="outline" className="rounded-full">
-                {graph.edges.length} edges
-              </Badge>
-              <Badge variant="outline" className="rounded-full">
-                {focusMode === "finding" ? "Focused view" : "Full graph"}
-              </Badge>
-            </div>
+        <CardContent className="space-y-4 px-0 pt-0">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className="rounded-full">
+              <Network className="h-3.5 w-3.5" />
+              {graph.nodes.length} nodes
+            </Badge>
+            <Badge variant="outline" className="rounded-full">
+              {graph.edges.length} edges
+            </Badge>
+            <Badge variant="outline" className="rounded-full">
+              {focusMode === "finding" ? "Focused" : "Full graph"}
+            </Badge>
           </div>
-        </CardHeader>
 
-        <CardContent className="space-y-5 px-0">
           <div className="flex flex-wrap gap-2">
             <Button
               variant={focusMode === "finding" ? "default" : "outline"}
@@ -636,12 +647,6 @@ export default function GraphPanel({
             </div>
           </div>
 
-          <p className="text-sm text-muted-foreground">
-            Drag nodes to inspect local structure. The selected finding and its
-            neighborhood stay emphasized, while the full graph is still
-            available when you switch out of focused view.
-          </p>
-
           <div className="flex flex-wrap gap-2">
             {presentLegend.map((type) => (
               <Badge
@@ -685,7 +690,7 @@ export default function GraphPanel({
                       Selected node
                     </p>
                   </div>
-                  <p className="mt-2 font-heading text-xl font-semibold">
+                  <p className="mt-2 font-medium">
                     {selectedNode.label}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -728,13 +733,20 @@ export default function GraphPanel({
                 </div>
 
                 <div className="rounded-[1.4rem] border border-border/75 bg-background/70 p-5">
-                  <p className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Link2 className="h-4 w-4" />
-                    Connected relationships
-                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Link2 className="h-4 w-4" />
+                      Connected relationships
+                    </p>
+                    {selectedEdges.length > relationshipsPerPage ? (
+                      <Badge variant="outline" className="rounded-full">
+                        Page {relationshipsPage} of {totalRelationshipPages}
+                      </Badge>
+                    ) : null}
+                  </div>
                   <div className="mt-4 space-y-3">
                     {selectedEdges.length > 0 ? (
-                      selectedEdges.map((edge, index) => {
+                      paginatedSelectedEdges.map((edge, index) => {
                         const otherId =
                           edge.source === selectedNode.id ? edge.target : edge.source
                         const otherNode = graph.nodes.find((node) => node.id === otherId)
@@ -770,6 +782,68 @@ export default function GraphPanel({
                       </p>
                     )}
                   </div>
+
+                  {totalRelationshipPages > 1 ? (
+                    <Pagination className="mt-4 justify-start">
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            href="#"
+                            text="Previous"
+                            aria-disabled={relationshipsPage === 1}
+                            className={
+                              relationshipsPage === 1
+                                ? "pointer-events-none opacity-50"
+                                : ""
+                            }
+                            onClick={(event) => {
+                              event.preventDefault()
+                              setRelationshipsPage((page) => Math.max(1, page - 1))
+                            }}
+                          />
+                        </PaginationItem>
+
+                        {Array.from(
+                          { length: totalRelationshipPages },
+                          (_, index) => index + 1
+                        ).map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              href="#"
+                              isActive={page === relationshipsPage}
+                              onClick={(event) => {
+                                event.preventDefault()
+                                setRelationshipsPage(page)
+                              }}
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            href="#"
+                            text="Next"
+                            aria-disabled={
+                              relationshipsPage === totalRelationshipPages
+                            }
+                            className={
+                              relationshipsPage === totalRelationshipPages
+                                ? "pointer-events-none opacity-50"
+                                : ""
+                            }
+                            onClick={(event) => {
+                              event.preventDefault()
+                              setRelationshipsPage((page) =>
+                                Math.min(totalRelationshipPages, page + 1)
+                              )
+                            }}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  ) : null}
                 </div>
               </motion.div>
             ) : null}

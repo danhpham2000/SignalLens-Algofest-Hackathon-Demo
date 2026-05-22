@@ -31,6 +31,18 @@ function buildEvidenceLine(result: ResultResponse, evidenceId: string) {
 }
 
 function buildBrief(result: ResultResponse) {
+  const comparison = result.comparison ?? {
+    mode: "none" as const,
+    headline: "No comparison is available yet.",
+    summary: "SignalLens needs a comparable prior period to build a change view.",
+    changes: [],
+  }
+  const verification = result.verification ?? {
+    profileLabel: "Unclassified financial document",
+    headline: "No official verification is available yet.",
+    checks: [],
+  }
+
   const lines: string[] = [
     `# SignalLens Analyst Brief`,
     ``,
@@ -77,6 +89,37 @@ function buildBrief(result: ResultResponse) {
 
     lines.push(``)
   }
+
+  lines.push(`## Compare Mode`)
+  lines.push(comparison.headline)
+  lines.push(comparison.summary)
+  lines.push(``)
+  for (const change of comparison.changes.slice(0, 3)) {
+    const parts = [change.label]
+    if (change.changePercentLabel) {
+      parts.push(change.changePercentLabel)
+    }
+    if (change.previousValueLabel && change.currentValueLabel) {
+      parts.push(`${change.previousValueLabel} -> ${change.currentValueLabel}`)
+    }
+    lines.push(`- ${parts.join(" · ")}`)
+  }
+  lines.push(``)
+
+  lines.push(`## Official Verification`)
+  lines.push(verification.headline)
+  for (const check of verification.checks.slice(0, 3)) {
+    const valueLine =
+      check.documentValueLabel || check.officialValueLabel
+        ? ` (${check.documentValueLabel ?? "n/a"} vs ${check.officialValueLabel ?? "n/a"})`
+        : ""
+    lines.push(`- ${check.title}: ${check.status}${valueLine}`)
+    lines.push(`  ${check.summary}`)
+    if (check.sourceUrl) {
+      lines.push(`  Source: ${check.sourceUrl}`)
+    }
+  }
+  lines.push(``)
 
   lines.push(`## Talk Track`)
   for (const takeaway of result.summary.keyTakeaways.slice(0, 3)) {

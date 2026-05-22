@@ -93,11 +93,58 @@ export interface BackendSummary {
   generated_with: string
 }
 
+export interface BackendComparisonChange {
+  id: string
+  label: string
+  status: string
+  direction: string
+  current_value: number
+  current_value_label: string
+  previous_value?: number | null
+  previous_value_label?: string | null
+  unit?: string | null
+  period_current?: string | null
+  period_previous?: string | null
+  change_percent?: number | null
+  change_percent_label?: string | null
+  evidence_ids: string[]
+  metadata: Record<string, unknown>
+}
+
+export interface BackendComparisonSummary {
+  mode: string
+  headline: string
+  summary: string
+  baseline_label?: string | null
+  changes: BackendComparisonChange[]
+}
+
+export interface BackendVerificationCheck {
+  id: string
+  title: string
+  status: string
+  source_name: string
+  source_url?: string | null
+  summary: string
+  document_value_label?: string | null
+  official_value_label?: string | null
+  evidence_ids: string[]
+  metadata: Record<string, unknown>
+}
+
+export interface BackendVerificationSummary {
+  profile_label: string
+  headline: string
+  checks: BackendVerificationCheck[]
+}
+
 export interface BackendDocumentResult {
   document: BackendDocumentRecord
   extraction?: BackendExtractionResult | null
   analysis?: BackendAnalysisResult | null
   summary?: BackendSummary | null
+  comparison?: BackendComparisonSummary | null
+  verification?: BackendVerificationSummary | null
 }
 
 export interface BackendUploadResponse {

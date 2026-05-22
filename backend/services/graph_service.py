@@ -11,12 +11,20 @@ class GraphService:
         nodes: List[GraphNode] = []
         edges: List[GraphEdge] = []
         node_ids = set()
+        edge_keys = set()
 
         def add_node(node: GraphNode) -> None:
             if node.id in node_ids:
                 return
             node_ids.add(node.id)
             nodes.append(node)
+
+        def add_edge(edge: GraphEdge) -> None:
+            edge_key = (edge.source, edge.target, edge.label)
+            if edge_key in edge_keys:
+                return
+            edge_keys.add(edge_key)
+            edges.append(edge)
 
         add_node(
             GraphNode(
@@ -41,7 +49,7 @@ class GraphService:
                         metadata={"page_number": chunk.page_number, "chunk_type": chunk.chunk_type},
                     )
                 )
-                edges.append(GraphEdge(source=result.document.id, target=chunk.id, label="has_chunk"))
+                add_edge(GraphEdge(source=result.document.id, target=chunk.id, label="has_chunk"))
 
             for metric in result.extraction.metrics[:20]:
                 metric_lookup[metric.id] = metric.model_dump()
@@ -53,7 +61,7 @@ class GraphService:
                         metadata={"value": metric.value, "unit": metric.unit, "period": metric.period},
                     )
                 )
-                edges.append(GraphEdge(source=result.document.id, target=metric.id, label="has_metric"))
+                add_edge(GraphEdge(source=result.document.id, target=metric.id, label="has_metric"))
 
         if result.analysis:
             for finding in result.analysis.findings:
@@ -68,15 +76,15 @@ class GraphService:
                         },
                     )
                 )
-                edges.append(GraphEdge(source=result.document.id, target=finding.id, label="has_finding"))
+                add_edge(GraphEdge(source=result.document.id, target=finding.id, label="has_finding"))
 
                 for metric_id in finding.metric_ids:
                     if metric_id in metric_lookup:
-                        edges.append(GraphEdge(source=finding.id, target=metric_id, label="uses_metric"))
+                        add_edge(GraphEdge(source=finding.id, target=metric_id, label="uses_metric"))
 
                 for chunk_id in finding.evidence_ids:
                     if chunk_id in chunk_lookup:
-                        edges.append(GraphEdge(source=finding.id, target=chunk_id, label="supported_by"))
+                        add_edge(GraphEdge(source=finding.id, target=chunk_id, label="supported_by"))
 
         return GraphPayload(document_id=document_id, nodes=nodes, edges=edges)
 

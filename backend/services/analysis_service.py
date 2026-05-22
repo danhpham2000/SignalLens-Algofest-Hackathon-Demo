@@ -14,9 +14,11 @@ from core.constants import (
 )
 from db.neo4j_repo import neo4j_repository
 from models.schemas import AnalysisResult, Chunk, DocumentResult, ExtractionResult, Finding, Metric, ScoreBreakdown
+from services.compare_service import compare_service
 from services.explanation_service import explanation_service
 from services.extraction_service import extraction_service
 from services.storage_service import storage_service
+from services.verification_service import verification_service
 
 
 class AnalysisService:
@@ -60,7 +62,7 @@ class AnalysisService:
 
         summary = storage_service.get_summary(document_id)
         if summary and all(finding.explanation for finding in analysis.findings):
-            return storage_service.build_result(document_id)
+            return self._enrich_result(storage_service.build_result(document_id))
 
         analysis, summary = explanation_service.explain(document, extraction, analysis)
         storage_service.save_analysis(analysis)
@@ -68,12 +70,17 @@ class AnalysisService:
         result = storage_service.build_result(document_id)
         if neo4j_repository.enabled():
             neo4j_repository.sync_document_result(result)
-        return result
+        return self._enrich_result(result)
 
     def get_result(self, document_id: str, ensure_complete: bool = True) -> DocumentResult:
         if ensure_complete:
             return self.run_explanation(document_id)
-        return storage_service.build_result(document_id)
+        return self._enrich_result(storage_service.build_result(document_id))
+
+    def _enrich_result(self, result: DocumentResult) -> DocumentResult:
+        result.comparison = compare_service.build_summary(result)
+        result.verification = verification_service.build_summary(result)
+        return result
 
     def _score_findings(self, document_id: str, extraction: ExtractionResult) -> List[Finding]:
         chunk_lookup = {chunk.id: chunk for chunk in extraction.chunks}
@@ -111,13 +118,16 @@ class AnalysisService:
         if not metrics:
             return None
 
-        current = metrics[-1]
-        previous = metrics[-2] if len(metrics) > 1 else None
+        current, previous = self._select_metric_pair(metrics)
         evidence_ids = self._collect_evidence_ids(metrics)
         evidence_chunks = [chunk_lookup[evidence_id] for evidence_id in evidence_ids if evidence_id in chunk_lookup]
         evidence_text = " ".join(chunk.text for chunk in evidence_chunks).lower()
 
         change_score, change_percent, change_direction = self._score_change(current, previous)
+        if not self._is_reasonable_change_percent(change_percent):
+            change_percent = None
+            if previous is not None:
+                change_score = min(change_score, 1.2)
         severity_component = self._score_severity(current, previous, change_direction)
         keyword_score = self._score_keywords(evidence_text)
         evidence_score = self._score_evidence(evidence_chunks)
@@ -157,11 +167,58 @@ class AnalysisService:
                 "current_value": current.value,
                 "current_unit": current.unit,
                 "previous_value": previous.value if previous else None,
+                "previous_unit": previous.unit if previous else None,
                 "change_percent": round(change_percent, 2) if change_percent is not None else None,
                 "change_direction": change_direction,
                 "period": current.period,
             },
         )
+
+    def _select_metric_pair(self, metrics: List[Metric]) -> Tuple[Metric, Optional[Metric]]:
+        current_candidates = [metric for metric in metrics if (metric.period or "").strip().lower() == "current"]
+        previous_candidates = [metric for metric in metrics if (metric.period or "").strip().lower() == "previous"]
+
+        if current_candidates:
+            current = max(current_candidates, key=self._sequence_index)
+            previous = self._best_previous_metric(current, previous_candidates)
+            if previous:
+                return current, previous
+
+        current = metrics[-1]
+        previous = self._best_previous_metric(current, metrics[:-1])
+        return current, previous
+
+    def _best_previous_metric(
+        self,
+        current: Metric,
+        candidates: List[Metric],
+    ) -> Optional[Metric]:
+        comparable = [metric for metric in candidates if self._metrics_are_comparable(metric, current)]
+        if not comparable:
+            return None
+
+        comparable.sort(
+            key=lambda metric: (
+                1 if metric.unit == current.unit else 0,
+                -abs(self._sequence_index(current) - self._sequence_index(metric)),
+            ),
+            reverse=True,
+        )
+        return comparable[0]
+
+    def _metrics_are_comparable(self, previous: Metric, current: Metric) -> bool:
+        if self._looks_like_year(previous.value, previous.unit) or self._looks_like_year(current.value, current.unit):
+            return False
+
+        if previous.unit != current.unit:
+            return False
+
+        if current.unit == "$" and min(abs(previous.value), abs(current.value)) > 0:
+            ratio = max(abs(previous.value), abs(current.value)) / min(abs(previous.value), abs(current.value))
+            if ratio > 500:
+                return False
+
+        return True
 
     def _build_text_findings(
         self,
@@ -232,6 +289,11 @@ class AnalysisService:
             change_percent = None
             score = min(abs(delta) / 1000000.0, 3.0)
         return score, change_percent, self._direction_from_value(delta)
+
+    def _is_reasonable_change_percent(self, change_percent: Optional[float]) -> bool:
+        if change_percent is None:
+            return True
+        return abs(change_percent) <= 500.0
 
     def _score_severity(
         self,
@@ -349,6 +411,9 @@ class AnalysisService:
             return (0, int(metric.metadata.get("sequence_index", 0)))
         return (1, period_rank)
 
+    def _sequence_index(self, metric: Metric) -> int:
+        return int(metric.metadata.get("sequence_index", 0))
+
     def _period_rank(self, period: Optional[str]) -> Optional[float]:
         if not period:
             return None
@@ -387,6 +452,9 @@ class AnalysisService:
         if any(hint in metric_name for hint in LOWER_IS_BETTER_HINTS):
             return "lower"
         return "neutral"
+
+    def _looks_like_year(self, value: float, unit: Optional[str]) -> bool:
+        return unit is None and 1900 <= value <= 2100 and float(value).is_integer()
 
     def _format_value(self, value: float, unit: Optional[str]) -> str:
         absolute = abs(value)

@@ -5,7 +5,7 @@ import { MessageSquareQuote, Network } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { FadeIn } from "@/components/ui/motion"
 import { type EvidenceItem, type Finding, type ResultResponse } from "@/lib/types"
 
@@ -127,6 +127,28 @@ function buildDebtSignalsAnswer(result: ResultResponse): PromptAnswer {
 }
 
 function buildQuarterChangeAnswer(result: ResultResponse): PromptAnswer {
+  const comparison = result.comparison
+
+  if (comparison && comparison.changes.length > 0) {
+    const citations = uniqueEvidence(
+      result,
+      comparison.changes.flatMap((change) => change.evidenceIds)
+    ).slice(0, 3)
+
+    return {
+      headline: comparison.headline,
+      summary: comparison.summary,
+      bullets: comparison.changes.slice(0, 3).map((change) => {
+        const movement = change.changePercentLabel ?? change.currentValueLabel
+        const values = change.previousValueLabel
+          ? ` (${change.previousValueLabel} -> ${change.currentValueLabel})`
+          : ""
+        return `${change.label}: ${movement}${values}.`
+      }),
+      citations,
+    }
+  }
+
   const changedFindings = result.findings.filter(
     (finding) => Boolean(finding.metricDelta) || typeof finding.metadata?.change_percent === "number"
   )
@@ -192,28 +214,14 @@ export default function AskGraphPanel({
   return (
     <FadeIn>
       <Card className="panel-surface gap-4 border-0 bg-transparent py-0 shadow-none ring-0">
-        <CardHeader className="gap-3 px-0 pt-0">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-medium tracking-[0.22em] text-primary uppercase">
-                Ask the graph
-              </p>
-              <CardTitle className="font-heading text-2xl font-semibold">
-                Citation-first graph prompts
-              </CardTitle>
-              <p className="mt-2 text-sm/6 text-muted-foreground">
-                These canned prompts answer from the current result graph and
-                linked evidence instead of a freeform chatbot path.
-              </p>
-            </div>
-            <Badge variant="outline" className="w-fit rounded-full">
+        <CardContent className="space-y-4 px-0 pt-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="rounded-full">
               <Network className="h-3.5 w-3.5" />
-              {result.graph.nodes.length} graph nodes
+              {result.graph.nodes.length} nodes
             </Badge>
           </div>
-        </CardHeader>
 
-        <CardContent className="space-y-5 px-0">
           <div className="flex flex-wrap gap-2">
             {promptOptions.map((prompt) => (
               <Button
@@ -229,7 +237,7 @@ export default function AskGraphPanel({
           </div>
 
           <div className="rounded-[1.5rem] border border-border/75 bg-background/70 p-5">
-            <p className="font-heading text-xl font-semibold">{answer.headline}</p>
+            <p className="font-medium">{answer.headline}</p>
             <p className="mt-2 text-sm/6 text-muted-foreground">
               {answer.summary}
             </p>

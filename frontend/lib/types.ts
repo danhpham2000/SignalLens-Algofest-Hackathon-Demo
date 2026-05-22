@@ -121,6 +121,44 @@ export interface ResultSummary {
   keyTakeaways: string[]
 }
 
+export interface ComparisonChange {
+  id: string
+  label: string
+  status: "worsening" | "improving" | "stable"
+  direction: "up" | "down" | "flat"
+  currentValueLabel: string
+  previousValueLabel?: string
+  changePercentLabel?: string
+  periodLabel?: string
+  evidenceIds: string[]
+}
+
+export interface ComparisonSummary {
+  mode: "none" | "document_periods" | "baseline_document"
+  headline: string
+  summary: string
+  baselineLabel?: string
+  changes: ComparisonChange[]
+}
+
+export interface VerificationCheck {
+  id: string
+  title: string
+  status: "verified" | "mismatch" | "document-only" | "unavailable"
+  sourceName: string
+  sourceUrl?: string
+  summary: string
+  documentValueLabel?: string
+  officialValueLabel?: string
+  evidenceIds: string[]
+}
+
+export interface VerificationSummary {
+  profileLabel: string
+  headline: string
+  checks: VerificationCheck[]
+}
+
 export interface ResultResponse {
   id: string
   filename: string
@@ -132,6 +170,8 @@ export interface ResultResponse {
   findings: Finding[]
   evidence: EvidenceItem[]
   graph: GraphData
+  comparison?: ComparisonSummary
+  verification?: VerificationSummary
 }
 
 export interface SampleFile {

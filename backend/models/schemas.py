@@ -99,11 +99,58 @@ class Summary(BaseModel):
     generated_with: str = "rule_based"
 
 
+class ComparisonChange(BaseModel):
+    id: str
+    label: str
+    status: str
+    direction: str
+    current_value: float
+    current_value_label: str
+    previous_value: Optional[float] = None
+    previous_value_label: Optional[str] = None
+    unit: Optional[str] = None
+    period_current: Optional[str] = None
+    period_previous: Optional[str] = None
+    change_percent: Optional[float] = None
+    change_percent_label: Optional[str] = None
+    evidence_ids: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ComparisonSummary(BaseModel):
+    mode: str = "none"
+    headline: str
+    summary: str
+    baseline_label: Optional[str] = None
+    changes: List[ComparisonChange] = Field(default_factory=list)
+
+
+class VerificationCheck(BaseModel):
+    id: str
+    title: str
+    status: str
+    source_name: str
+    source_url: Optional[str] = None
+    summary: str
+    document_value_label: Optional[str] = None
+    official_value_label: Optional[str] = None
+    evidence_ids: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class VerificationSummary(BaseModel):
+    profile_label: str
+    headline: str
+    checks: List[VerificationCheck] = Field(default_factory=list)
+
+
 class DocumentResult(BaseModel):
     document: DocumentRecord
     extraction: Optional[ExtractionResult] = None
     analysis: Optional[AnalysisResult] = None
     summary: Optional[Summary] = None
+    comparison: Optional[ComparisonSummary] = None
+    verification: Optional[VerificationSummary] = None
 
 
 class UploadResponse(BaseModel):

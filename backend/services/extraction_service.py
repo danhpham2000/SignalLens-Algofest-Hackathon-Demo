@@ -450,6 +450,21 @@ class ExtractionService:
         elif suffix == "x":
             unit = "x"
 
+        lower_raw_value = raw_value.lower()
+        if not raw_suffix:
+            if "trillion" in lower_raw_value:
+                multiplier = 1000000000000.0
+                raw_suffix = "trillion"
+            elif "billion" in lower_raw_value:
+                multiplier = 1000000000.0
+                raw_suffix = "billion"
+            elif "million" in lower_raw_value:
+                multiplier = 1000000.0
+                raw_suffix = "million"
+            elif "thousand" in lower_raw_value:
+                multiplier = 1000.0
+                raw_suffix = "thousand"
+
         if match.group("currency"):
             unit = "$"
         elif not unit and raw_suffix:

@@ -4,7 +4,7 @@ import * as React from "react"
 import { FileImage, FileSpreadsheet, FileText, ScanSearch } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { FadeIn } from "@/components/ui/motion"
 import { type EvidenceItem, type Finding } from "@/lib/types"
 
@@ -74,28 +74,16 @@ export default function ProvenanceViewer({
   return (
     <FadeIn>
       <Card className="panel-surface gap-4 border-0 bg-transparent py-0 shadow-none ring-0">
-        <CardHeader className="gap-3 px-0 pt-0">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-medium tracking-[0.22em] text-primary uppercase">
-                Provenance viewer
-              </p>
-              <CardTitle className="font-heading text-2xl font-semibold">
-                Trust the evidence, not just the summary
-              </CardTitle>
-              <p className="mt-2 text-sm/6 text-muted-foreground">
-                Inspect the exact page thumbnail, highlighted source region,
-                extraction path, and finding confidence before presenting the
-                signal.
-              </p>
-            </div>
-            <Badge variant="outline" className="w-fit rounded-full font-mono">
+        <CardContent className="space-y-4 px-0 pt-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="rounded-full font-mono">
               {(finding.confidence * 100).toFixed(0)}% confidence
             </Badge>
+            <Badge variant="outline" className="rounded-full">
+              {evidence.length} source{evidence.length === 1 ? "" : "s"}
+            </Badge>
           </div>
-        </CardHeader>
 
-        <CardContent className="space-y-5 px-0">
           <div className="grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
             <div className="overflow-hidden rounded-[1.5rem] border border-border/75 bg-background/70 p-3">
               <div className="relative overflow-hidden rounded-[1.2rem] border border-border/60 bg-secondary/40">
@@ -143,11 +131,13 @@ export default function ProvenanceViewer({
                   </div>
 
                   <div>
-                    <p className="font-heading text-xl font-semibold">
+                    <p className="font-medium">
                       {selectedEvidence.title}
                     </p>
                     <p className="mt-2 text-sm/6 text-muted-foreground">
-                      {selectedEvidence.content}
+                      {selectedEvidence.content.length > 220
+                        ? `${selectedEvidence.content.slice(0, 220).trimEnd()}...`
+                        : selectedEvidence.content}
                     </p>
                   </div>
 
