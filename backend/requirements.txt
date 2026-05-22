@@ -14,3 +14,5 @@ aiofile
 uvicorn
 openai
 psycopg[binary]
+
+langgraph
